@@ -20,6 +20,7 @@ namespace gkc{
             last_check_rolling_counter_val = rolling_counter;
             return activity;
         }
+        virtual void watchdog_callback()=0;
 
     protected:
         bool active = false;
