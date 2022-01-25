@@ -15,7 +15,7 @@ namespace gkc{
         uint32_t get_update_interval(){ return update_interval_ms; }
         void set_update_interval(const uint32_t& update_interval_ms){ this->update_interval_ms = update_interval_ms; }
         // TODO getter and setter for max_inactivity_limit_ms
-        bool check_activity(){ 
+        virtual bool check_activity(){ 
             bool activity = last_check_rolling_counter_val != rolling_counter; 
             last_check_rolling_counter_val = rolling_counter;
             return activity;
