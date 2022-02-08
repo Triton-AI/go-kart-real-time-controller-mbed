@@ -22,6 +22,7 @@ void test_watchdog()
 {
     tritonai::gkc::Watchdog watchdog(5, 20, 5);
     watchdog.arm();
+    // Add your own watchable object here; do some magic to trigger the watchdog
     watchdog.disarm();
 }
 
