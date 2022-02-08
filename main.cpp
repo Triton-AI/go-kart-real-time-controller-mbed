@@ -1,10 +1,12 @@
-#include "mbed.h"
-#include "QEI.hpp"
 #include <iostream>
 #include <string>
 
-// main() runs in its own thread in the OS
-int main()
+#include "mbed.h"
+
+#include "QEI.hpp"
+#include "watchdog.hpp"
+
+void test_encoder()
 {
     QEI* encoder = new QEI(PC_6, PC_8, NC, 1200);
     DigitalIn pt1(PC_8, PullUp); 
@@ -16,3 +18,16 @@ int main()
     }
 }
 
+void test_watchdog()
+{
+    tritonai::gkc::Watchdog watchdog(5, 20, 5);
+    watchdog.arm();
+    watchdog.disarm();
+}
+
+// main() runs in its own thread in the OS
+int main()
+{
+    // test_encoder();
+    test_watchdog();
+}
