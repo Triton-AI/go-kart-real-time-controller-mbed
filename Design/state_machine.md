@@ -6,7 +6,7 @@
 
 When the MCU boots up, it enters uninitialized state. No actuation can happen in this state. No sensor reading will be sent to the PC, unless the MCU was previously initialized and is sent back from Emergency Stop state.
 
-The MCU will listen to incoming handshake request from the PC and respond to establish communication. No state transition would happen before the handshake, unless the MCU was previously initialized before.
+The MCU will listen to incoming handshake request from the PC and respond to establish communication. No state transition would happen before the handshake, unless the MCU was previously initialized.
 
 ### Valid transitions out of Uninitialized
 
