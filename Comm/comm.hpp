@@ -16,8 +16,8 @@
 #include <cstdint>
 #include <memory>
 
-#include "mbed.h"
 #include "USBSerial.h"
+#include "mbed.h"
 
 #include "watchable.hpp"
 
