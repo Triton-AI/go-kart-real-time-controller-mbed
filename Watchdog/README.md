@@ -16,10 +16,12 @@ To define sets of behaviors that the watchdog should be expecting from the compo
 ### `Watchdog`
 
 ```cpp
-Watchdog(uint32_t update_interval_ms, uint32_t max_inactivity_limit_ms)
+Watchdog(uint32_t update_interval_ms, uint32_t max_inactivity_limit_ms, uint32_t wakeup_every_ms)
 ```
 
-The watchdog should be initialized in a main controller which itself could be watchable. Since the watchdog itself is a `Watchable` object and will watch itself and reset if necessary, two params (`update_interval_ms` and `max_inactivity_limit_ms` are passed to initialize itself as a `Watchable` object).
+The watchdog should be initialized in a main controller which itself could be watchable. Since the watchdog itself is a `Watchable` object and will watch itself and reset if necessary, the first two params (`update_interval_ms` and `max_inactivity_limit_ms`) are passed to initialize itself as a `Watchable` object. 
+
+The last param `wakeup_every_ms` sets the internal frequency of the watchdog, which ideally should be ten times smaller than the minimum update interval of any `Watchable` object to be added.
 
 ```cpp
 void add_to_watchlist(Watchable* to_watch)
