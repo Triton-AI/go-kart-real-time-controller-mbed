@@ -29,11 +29,10 @@ protected:
   typedef std::pair<Watchable *, TimeElapsed> WatchlistEntry;
   typedef std::vector<WatchlistEntry> Watchlist;
   Watchlist watchlist{};
-  Thread watch{};
-  uint32_t watchdog_interval_ms_ = 0;
-  bool running_ = false;
+  Ticker watch;
+  uint32_t watchdog_interval_ms_;
 
-  void watch_thread();
+  void watch_callback();
 };
 } // namespace gkc
 } // namespace tritonai
