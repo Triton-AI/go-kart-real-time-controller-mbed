@@ -41,6 +41,37 @@ void disarm()
 
 Pause the watchdog
 
+### `Watchable`
+
+To enable watchdog function in a class, it needs to subclass `Watchable` and implement `watchdog_callback()`.
+
+```cpp
+Watchable(uint32_t update_interval_ms, uint32_t max_inactivity_limit_ms)
+```
+
+A watchable object must be initialized with two params:
+
+- `update_interval_ms`: the promised update interval of activity, and
+- `max_inactivity_limit_ms`: the max duration that the watchdog will tolerate before triggering.
+
+```cpp
+void activate()
+```
+
+Let the watchdog start to monitor this object.
+
+```cpp
+void deactivate()
+```
+
+Let the watchdog stop monitoring this object.
+
+```cpp
+void inc_count()
+```
+
+Call this function to reset watchdog countdown. Under the hood there is a rolling counter signaling activity.
+
 ## Inner-Working
 
 ## Known Issues and Future Improvements
