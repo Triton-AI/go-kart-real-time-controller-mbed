@@ -1,3 +1,6 @@
+#ifndef ACTUATOR_H
+#define ACTUATOR_H
+
 #include "mbed.h"
 
 class Actuator
@@ -11,6 +14,7 @@ class Actuator
         void    set_throttle(float f)   {throttle = f;}
         void    set_steering(float f)   {steering = f;}
         void    set_brake(float f)      {brake = f;}
+
 
         void    update_throttle();
         void    update_steering();
@@ -27,3 +31,4 @@ class Actuator
         float   brake = 0;
 };
 
+#endif
