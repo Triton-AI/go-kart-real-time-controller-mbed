@@ -1,14 +1,15 @@
 #include "actuation_controller.hpp"
 
-DigitalOut led1(LED1);
-DigitalOut led2(LED2);
-DigitalOut led3(LED3);
+#define THROTTLE_CONTROL_LOOP_PERIOD 100ms
+#define STEERING_CONTROL_LOOP_PERIOD 100ms
+#define BRAKE_CONTROL_LOOP_PERIOD 100ms
+
 
 Actuator::Actuator()
 {
-    ticker_throttle.attach(callback(this, &Actuator::update_throttle), 100ms);
-    ticker_steering.attach(callback(this, &Actuator::update_steering), 100ms);
-    ticker_brake.attach(callback(this, &Actuator::update_brake), 100ms);
+    ticker_throttle.attach(callback(this, &Actuator::update_throttle), THROTTLE_CONTROL_LOOP_PERIOD);
+    ticker_steering.attach(callback(this, &Actuator::update_steering), STEERING_CONTROL_LOOP_PERIOD);
+    ticker_brake.attach(callback(this, &Actuator::update_brake), BRAKE_CONTROL_LOOP_PERIOD);
 }
 
 void    Actuator::update_throttle()
