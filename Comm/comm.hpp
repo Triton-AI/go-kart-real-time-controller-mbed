@@ -33,6 +33,13 @@
 
 namespace tritonai {
 namespace gkc {
+struct IOQueues {
+  static constexpr uint32_t SIZE_SEND_QUEUE = 10;
+  static constexpr uint32_t SIZE_RECV_QUEUE = 10;
+  Queue<GkcBuffer, SIZE_SEND_QUEUE> to_send;
+  Queue<GkcBuffer, SIZE_RECV_QUEUE> to_receive;
+};
+
 class CommManager : public Watchable {
 public:
   static constexpr uint32_t WATCHDOG_UPDATE_MS = 100;
@@ -41,17 +48,14 @@ public:
   explicit CommManager(GkcPacketSubscriber *sub);
   size_t send(const GkcPacket &packet);
 
-  // Watchable interface
-  void watchdog_callback();
-
 protected:
   std::unique_ptr<GkcPacketFactory> factory_;
-
 #ifdef COMM_USB_SERIAL
   std::unique_ptr<USBSerial> usb_serial_;
 #endif
 
   void recv_callback();
+  void watchdog_callback();
 };
 } // namespace gkc
 } // namespace tritonai

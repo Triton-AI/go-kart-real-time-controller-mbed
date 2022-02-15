@@ -2,6 +2,7 @@
 #define WATCHABLE_HPP_
 
 #include <stdint.h>
+#include "mbed.h"
 
 namespace tritonai {
 namespace gkc {
@@ -26,13 +27,15 @@ public:
     last_check_rolling_counter_val = rolling_counter;
     return activity;
   }
-  virtual void watchdog_callback() = 0;
+  void attach(Callback<void ()> func) { callback_func_ = func; }
+  void watchdog_trigger() { callback_func_.call(); }
 
 protected:
   bool active = false;
   uint32_t rolling_counter = 0;
   uint32_t update_interval_ms = 0;
   uint32_t max_inactivity_limit_ms = 0;
+  Callback<void ()> callback_func_;
 };
 } // namespace gkc
 } // namespace tritonai

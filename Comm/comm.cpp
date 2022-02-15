@@ -9,9 +9,10 @@
  *
  */
 
+#include <memory>
+
 #include "comm.hpp"
 #include "mbed.h"
-#include <memory>
 
 namespace tritonai {
 namespace gkc {
@@ -19,8 +20,10 @@ CommManager::CommManager(GkcPacketSubscriber *sub)
     : Watchable(WATCHDOG_UPDATE_MS, WATCHDOG_MAX_MS),
       factory_(
           std::make_unique<GkcPacketFactory>(sub, GkcPacketUtils::debug_cout)) {
+  attach(callback(this, &CommManager::watchdog_callback));
 #ifdef COMM_USB_SERIAL
   usb_serial_ = std::make_unique<USBSerial>();
+  usb_serial_->attach(this, &CommManager::recv_callback);
 #endif
 }
 

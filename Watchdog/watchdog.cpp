@@ -11,6 +11,7 @@ Watchdog::Watchdog(uint32_t update_interval_ms,
     : Watchable(update_interval_ms, max_inactivity_limit_ms),
       watchdog_interval_ms_(wakeup_every_ms) {
   add_to_watchlist(this);
+  attach(callback(this, &Watchdog::watchdog_callback));
   watch.attach(callback(this, &Watchdog::watch_callback),
                std::chrono::milliseconds(watchdog_interval_ms_));
 }
@@ -51,7 +52,7 @@ void Watchdog::watch_callback() {
           entry.second += time_elapsed_ms.count();
           if (entry.second > entry.first->get_max_inactivity_limit_ms()) {
             // Watchdog triggered.
-            entry.first->watchdog_callback();
+            entry.first->watchdog_trigger();
           }
         }
       } else {
