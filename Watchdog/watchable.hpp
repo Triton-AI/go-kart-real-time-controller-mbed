@@ -2,6 +2,8 @@
 #define WATCHABLE_HPP_
 
 #include <stdint.h>
+#include <iostream>
+#include <string>
 #include "mbed.h"
 
 namespace tritonai {
@@ -22,7 +24,6 @@ public:
   bool is_activated() { return active; }
   uint32_t get_max_inactivity_limit_ms() { return max_inactivity_limit_ms; }
   virtual bool check_activity() {
-    static uint32_t last_check_rolling_counter_val = 0;
     bool activity = last_check_rolling_counter_val != rolling_counter;
     last_check_rolling_counter_val = rolling_counter;
     return activity;
@@ -36,6 +37,8 @@ protected:
   uint32_t update_interval_ms = 0;
   uint32_t max_inactivity_limit_ms = 0;
   Callback<void ()> callback_func_;
+private:
+  uint32_t last_check_rolling_counter_val = 0;
 };
 } // namespace gkc
 } // namespace tritonai

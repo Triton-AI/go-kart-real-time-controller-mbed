@@ -211,24 +211,29 @@ Controller::on_initialize(const GkcLifecycle &last_state) {
 StateTransitionResult
 Controller::on_deactivate(const GkcLifecycle &last_state) {
   // TODO
+  return StateTransitionResult::SUCCESS;
 }
 
 StateTransitionResult Controller::on_activate(const GkcLifecycle &last_state) {
   // TODO
+  return StateTransitionResult::SUCCESS;
 }
 
 StateTransitionResult Controller::on_shutdown(const GkcLifecycle &last_state) {
   // TODO
+  return StateTransitionResult::SUCCESS;
 }
 
 StateTransitionResult
 Controller::on_emergency_stop(const GkcLifecycle &last_state) {
   // TODO
+  return StateTransitionResult::SUCCESS;
 }
 
 StateTransitionResult
 Controller::on_reinitialize(const GkcLifecycle &last_state) {
   // TODO
+  return StateTransitionResult::SUCCESS;
 }
 
 } // namespace gkc
