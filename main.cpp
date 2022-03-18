@@ -29,7 +29,7 @@ BufferedSerial rs232(PC_12, PD_2, 9600); //TX, Rx
 //pwm port _____ used connected to the throttle
 //It will output a pwm at frecuency ____
 //The function Actuator::update_throttle() will update the duty cycle to the desired one
-#define THROTTLE_PWM_PIN PA_5
+
 //PwmOut throttle_pin(THROTTLE_PWM_PIN);
 
 
@@ -43,7 +43,16 @@ void thread_comm_function()
     packet_sub.set_actuator(&act);
     auto factory = tritonai::gkc::GkcPacketFactory(&packet_sub, tritonai::gkc::GkcPacketUtils::debug_cout);
     int bytes_read;
-    std::vector<uint8_t> recv_buffer(18, 0);
+
+    while (1)
+    {
+        std::vector<uint8_t> recv_buffer(1, 0);
+        bytes_read = rs232.read(recv_buffer.data(), 1); //it reads one byte at a time
+        if (bytes_read < 0)
+            ;//error
+        factory.Receive(recv_buffer);
+    }
+        /*std::vector<uint8_t> recv_buffer(18, 0);
     while (1)
     {
         for (int i = 0; i < 18; i++)
@@ -53,7 +62,8 @@ void thread_comm_function()
                 ;//error
         }
         factory.Receive(recv_buffer);
-    }
+    }*/
+
 }
 
 int main()

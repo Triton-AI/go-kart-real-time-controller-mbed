@@ -6,9 +6,14 @@ DigitalOut led1(LED1);
 DigitalOut led2(LED2);
 DigitalOut led3(LED3);
 
+#define THROTTLE_PWM_PIN PA_5
+PwmOut pin(THROTTLE_PWM_PIN);
+
 #define THROTTLE_CONTROL_LOOP_PERIOD 100ms
 #define STEERING_CONTROL_LOOP_PERIOD 100ms
 #define BRAKE_CONTROL_LOOP_PERIOD 100ms
+
+
 
 CAN can1(PD_0, PD_1, 500000); //RX, TX
 
@@ -32,31 +37,30 @@ Actuator::Actuator()
 void    Actuator::update_throttle()
 {
     /*Code to use the throttle*/
-    PwmOut pin(THROTTLE_PWM_PIN);
-    void throttle(float  f = get_throttle()) {
-int initial = 0;
-if(initial == 0){
-    pin.period(0.0001f);
-    initial++;
-}
-// here I am normalizing the input 
-f = f/100;
-if(f < 1 && f > 0){
-    if(f > 0.5){
-        f = exp(f*3.5);
-        f = f/40;
-    }
-    else if(f < 0.5){
-        f = exp(f*7);
-        f = f/130;
-    }
-    else {
-        f = exp(f);
-        f = f/10;  
-    }
- }  
-    pin.write(f);
-}
+    float f = get_throttle();
+    //int initial = 0;
+    //if(initial == 0){
+        pin.period(0.0001f);
+        //initial++;
+    //}
+    // here I am normalizing the input 
+    f = f/100;
+    if(f < 1 && f > 0){
+        if(f > 0.5){
+            f = exp(f*3.5);
+            f = f/40;
+        }
+        else if(f < 0.5){
+            f = exp(f*7);
+            f = f/130;
+        }
+        else {
+            f = exp(f);
+            f = f/10;  
+        }
+    }  
+        pin.write(f);
+    
     /*Use get_throttle() instead of getting the input as an argument*/
     //printf("Throttle %d\n", get_throttle());
     led1 = !led1;

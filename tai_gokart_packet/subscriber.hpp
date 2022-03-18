@@ -15,7 +15,7 @@ class myGkcPacketSubscriber: public GkcPacketSubscriber
 public:
     void packet_callback(const ControlGkcPacket & packet)
     {
-        printf("%f %f %f\n", packet.throttle, packet.steering, packet.brake);
+        printf("%f %f %f\n", packet.throttle, packet.steering, packet.brake); //to be removed
         act->set_throttle(packet.throttle);
         act->set_steering(packet.steering);
         act->set_brake(packet.brake);
