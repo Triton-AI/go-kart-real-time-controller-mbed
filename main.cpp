@@ -44,26 +44,25 @@ void thread_comm_function()
     auto factory = tritonai::gkc::GkcPacketFactory(&packet_sub, tritonai::gkc::GkcPacketUtils::debug_cout);
     int bytes_read;
 
+    /*std::vector<uint8_t> recv_buffer(1, 0);
     while (1)
     {
-        std::vector<uint8_t> recv_buffer(1, 0);
         bytes_read = rs232.read(recv_buffer.data(), 1); //it reads one byte at a time
         if (bytes_read < 0)
             ;//error
         factory.Receive(recv_buffer);
-    }
-        /*std::vector<uint8_t> recv_buffer(18, 0);
+    }*/
+    std::vector<uint8_t> recv_buffer(2, 0);
     while (1)
     {
-        for (int i = 0; i < 18; i++)
+        for (int i = 0; i < 2; i++)
         {
-            bytes_read = rs232.read(&(recv_buffer.data()[i % 18]), 1); //it reads one byte at a 
+            bytes_read = rs232.read(&(recv_buffer.data()[i]), 1); //it reads one byte at a 
             if (bytes_read < 0)
                 ;//error
         }
         factory.Receive(recv_buffer);
-    }*/
-
+    }
 }
 
 int main()

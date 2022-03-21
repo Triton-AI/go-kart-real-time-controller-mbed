@@ -9,9 +9,9 @@ DigitalOut led3(LED3);
 #define THROTTLE_PWM_PIN PA_5
 PwmOut pin(THROTTLE_PWM_PIN);
 
-#define THROTTLE_CONTROL_LOOP_PERIOD 100ms
-#define STEERING_CONTROL_LOOP_PERIOD 100ms
-#define BRAKE_CONTROL_LOOP_PERIOD 100ms
+#define THROTTLE_CONTROL_LOOP_PERIOD 10ms
+#define STEERING_CONTROL_LOOP_PERIOD 10ms
+#define BRAKE_CONTROL_LOOP_PERIOD 10ms
 
 
 
@@ -28,6 +28,7 @@ Actuator::Actuator()
     thread_steering.start(callback(this, &Actuator::run_queue_steering));
     queue_brake.call_every(BRAKE_CONTROL_LOOP_PERIOD ,callback(this, &Actuator::update_brake));
     thread_brake.start(callback(this, &Actuator::run_queue_brake));
+    pin.period(0.0001f);
 }    
 
 //This function updates the throttle
@@ -40,7 +41,7 @@ void    Actuator::update_throttle()
     float f = get_throttle();
     //int initial = 0;
     //if(initial == 0){
-        pin.period(0.0001f);
+        
         //initial++;
     //}
     // here I am normalizing the input 
@@ -89,15 +90,15 @@ void    Actuator::update_brake()
     /*Use get_brake() instead of getting the input as an argument*/
     //printf("Brake %d\n", get_brake());
 
-    int pos = get_brake() * 2000;
+    int pos = get_brake() * 2300;
     //                                 //pos = 0, Auto replay Off {0x0F, 0x4A, 0xE8, 0xC3, 0, 0, 0, 0}
     static unsigned char message[8] = {0x0F, 0x4A, 0x00, 0xC0, 0, 0, 0, 0};
-    if (pos > 2000)
+    if (pos > 2500)
         return;
     message[2] = pos & 0xFF;
     message[3] = 0xC0 | ((pos >> 8) & 0x1F);
     can1.write(CANMessage(0x00FF0000, message, 8, CANData, CANExtended)); //(id, &buffer, len)
-    //printf("Repositioned to &u\n", pos);
+    //printf("Repositioned to %u\n", pos);
     //printf("%x %x %x %x\n", message[0], message[1], message[2],message[3]);
     //ThisThread::sleep_for(100);
 
