@@ -16,20 +16,20 @@
 #include <cstdint>
 #include <memory>
 
+#include "BufferedSerial.h"
 #include "USBSerial.h"
 #include "mbed.h"
 
+
+#include "config.hpp"
 #include "watchable.hpp"
+
 
 #include "tai_gokart_packet/gkc_packet_factory.hpp"
 #include "tai_gokart_packet/gkc_packet_utils.hpp"
 #include "tai_gokart_packet/gkc_packets.hpp"
 
-// Choose a comm interface
-#define COMM_USB_SERIAL
-// #define COMM_UART_SERIAL
-// #define COMM_ETHERNET
-// #define COMM_CAN
+// Choose a comm interface in config.hpp
 
 namespace tritonai {
 namespace gkc {
@@ -55,7 +55,8 @@ protected:
 #endif
 
 #ifdef COMM_UART_SERIAL
-  std::unique_ptr<BufferedSerial> uart_serial_; 
+  std::unique_ptr<BufferedSerial> uart_serial_;
+  Thread uart_serial_thread_;
 #endif
 
   void recv_callback();

@@ -20,10 +20,20 @@
 // Communication
 // *************
 // Choose one of the available interfaces
-#define COMM_USB_SERIAL
-//#define COMM_UART_SERIAL
-//#define COMM_ETHERNET
-//#define COMM_CAN
+//#define COMM_USB_SERIAL
+#define COMM_UART_SERIAL
+//#define COMM_ETHERNET  // not implemented
+//#define COMM_CAN  // not implemented
+
+// UART-specific settings
+#define BAUD_RATE 115200
+#define UART_RX_PIN PC_12
+#define UART_TX_PIN PD_2
+
+// Generic comm settings
+#define RECV_BUFFER_SIZE 512
+// millisecond to wait between each serial/ethernet/can read
+#define WAIT_READ_MS 5
 
 // *********
 // Watchdogs
