@@ -25,6 +25,10 @@ CommManager::CommManager(GkcPacketSubscriber *sub)
   usb_serial_ = std::make_unique<USBSerial>();
   usb_serial_->attach(this, &CommManager::recv_callback);
 #endif
+
+#ifdef COMM_UART_SERIAL
+  // uart_serial 
+#endif
 }
 
 size_t CommManager::send(const GkcPacket &packet) {

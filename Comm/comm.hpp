@@ -54,6 +54,10 @@ protected:
   std::unique_ptr<USBSerial> usb_serial_;
 #endif
 
+#ifdef COMM_UART_SERIAL
+  std::unique_ptr<BufferedSerial> uart_serial_; 
+#endif
+
   void recv_callback();
   void watchdog_callback();
 };

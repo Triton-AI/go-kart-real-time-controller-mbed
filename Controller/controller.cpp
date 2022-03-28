@@ -12,6 +12,7 @@
 #include <chrono>
 #include <cstdint>
 #include <memory>
+#include <sstream>
 
 #include "mbed.h"
 
@@ -43,6 +44,7 @@ Controller::Controller()
       callback(this, &Controller::heartbeat_ticker_callback),
       std::chrono::milliseconds(get_update_interval()));
   pc_hb_watcher_.activate();
+  Watchable::activate();
 
   watchdog_.add_to_watchlist(this);
   watchdog_.add_to_watchlist(&pc_hb_watcher_);
@@ -143,6 +145,9 @@ void Controller::packet_callback(const StateTransitionGkcPacket &packet) {
 
 void Controller::packet_callback(const ControlGkcPacket &packet) {
   // TODO
+  std::stringstream s;
+  s << "[Control] thr: " << packet.throttle << ", brk: " << packet.brake << ", str: " << packet.steering;
+  send_log(LogPacket::Severity::INFO, s.str());
 }
 
 void Controller::packet_callback(const SensorGkcPacket &packet) {
@@ -191,7 +196,7 @@ void Controller::heartbeat_ticker_callback() {
 }
 
 void Controller::initialize_thread_callback() {
-    ThisThread::sleep_for(std::chrono::seconds(3));
+    return;
 }
 
 void Controller::send_log(const LogPacket::Severity &severity,
@@ -210,17 +215,21 @@ Controller::on_initialize(const GkcLifecycle &last_state) {
 
 StateTransitionResult
 Controller::on_deactivate(const GkcLifecycle &last_state) {
-  // TODO
+  ctl_cmd_watcher_.deactivate();
+  // TODO(haoru): disallow actuation
   return StateTransitionResult::SUCCESS;
 }
 
 StateTransitionResult Controller::on_activate(const GkcLifecycle &last_state) {
-  // TODO
+  ctl_cmd_watcher_.activate();
+  // TODO(haoru): allow actuation
   return StateTransitionResult::SUCCESS;
 }
 
 StateTransitionResult Controller::on_shutdown(const GkcLifecycle &last_state) {
-  // TODO
+  ctl_cmd_watcher_.deactivate();
+  // TODO(haoru): disallow actuation
+  pc_hb_watcher_.deactivate();
   return StateTransitionResult::SUCCESS;
 }
 
