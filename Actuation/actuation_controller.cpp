@@ -1,21 +1,8 @@
 #include "actuation_controller.hpp"
-//#include "../peripherals.h"
-
-
-DigitalOut led1(LED1);
-DigitalOut led2(LED2);
-DigitalOut led3(LED3);
-
-#define THROTTLE_PWM_PIN PA_5
-PwmOut pin(THROTTLE_PWM_PIN);
 
 #define THROTTLE_CONTROL_LOOP_PERIOD 10ms
 #define STEERING_CONTROL_LOOP_PERIOD 10ms
 #define BRAKE_CONTROL_LOOP_PERIOD 10ms
-
-
-
-CAN can1(PD_0, PD_1, 500000); //RX, TX
 
 //Constructor for Actuator class
 //It runs when a new Actuator class is created
@@ -28,7 +15,7 @@ Actuator::Actuator()
     thread_steering.start(callback(this, &Actuator::run_queue_steering));
     queue_brake.call_every(BRAKE_CONTROL_LOOP_PERIOD ,callback(this, &Actuator::update_brake));
     thread_brake.start(callback(this, &Actuator::run_queue_brake));
-    pin.period(0.0001f);
+    throttle_pwm.period(0.0001f);
 }    
 
 //This function updates the throttle
@@ -60,7 +47,7 @@ void    Actuator::update_throttle()
             f = f/10;  
         }
     }  
-        pin.write(f);
+        throttle_pwm.write(f);
     
     /*Use get_throttle() instead of getting the input as an argument*/
     //printf("Throttle %d\n", get_throttle());

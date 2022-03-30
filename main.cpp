@@ -6,29 +6,13 @@
 #include "tai_gokart_packet/include/tai_gokart_packet/gkc_packet_factory.hpp"
 #include "tai_gokart_packet/include/tai_gokart_packet/gkc_packet_subscriber.hpp"
 #include "tai_gokart_packet/subscriber.hpp"
-//#include "peripherals.h"
-//test
 
 
 
-//Onboard LEDs
-//DigitalOut led1(LED1);
-//DigitalOut led2(LED2);
-//DigitalOut led3(LED3);
 
-//CAN ports configured to 500Khz
-//can1 used for the comm with the brake so far
-//CAN can1(PD_0, PD_1, 500000); //RX, TX
-//CAN can2(PB_5, PB_6, 500000); //RX, TX
+extern BufferedSerial rs232; //TX, Rx
 
-//rs232 port
-//used for the MRC (Main Robot Computer) - RTC comm
-//confugured at 9600 bauds, but other frecuencies should work too
-BufferedSerial rs232(PC_12, PD_2, 9600); //TX, Rx
 
-//pwm port _____ used connected to the throttle
-//It will output a pwm at frecuency ____
-//The function Actuator::update_throttle() will update the duty cycle to the desired one
 
 //PwmOut throttle_pin(THROTTLE_PWM_PIN);
 

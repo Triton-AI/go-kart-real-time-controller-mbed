@@ -3,6 +3,13 @@
 
 #include "mbed.h"
 
+extern DigitalOut led1;
+extern DigitalOut led2;
+extern DigitalOut led3;
+
+extern PwmOut throttle_pwm;
+extern CAN can1; //RX, TX
+
 class Actuator
 {
     public:
