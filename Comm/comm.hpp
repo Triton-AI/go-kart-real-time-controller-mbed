@@ -15,15 +15,14 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <queue>
 
 #include "BufferedSerial.h"
 #include "USBSerial.h"
 #include "mbed.h"
 
-
 #include "config.hpp"
 #include "watchable.hpp"
-
 
 #include "tai_gokart_packet/gkc_packet_factory.hpp"
 #include "tai_gokart_packet/gkc_packet_utils.hpp"
@@ -33,23 +32,19 @@
 
 namespace tritonai {
 namespace gkc {
-struct IOQueues {
-  static constexpr uint32_t SIZE_SEND_QUEUE = 10;
-  static constexpr uint32_t SIZE_RECV_QUEUE = 10;
-  Queue<GkcBuffer, SIZE_SEND_QUEUE> to_send;
-  Queue<GkcBuffer, SIZE_RECV_QUEUE> to_receive;
-};
-
 class CommManager : public Watchable {
 public:
   static constexpr uint32_t WATCHDOG_UPDATE_MS = 100;
   static constexpr uint32_t WATCHDOG_MAX_MS = 500;
 
   explicit CommManager(GkcPacketSubscriber *sub);
-  size_t send(const GkcPacket &packet);
+  void send(const GkcPacket &packet);
 
 protected:
   std::unique_ptr<GkcPacketFactory> factory_;
+  Queue<GkcBuffer, SEND_QUEUE_SIZE> send_queue_;
+  std::queue<std::shared_ptr<GkcBuffer>> send_queue_data_;
+  Thread send_thread;
 #ifdef COMM_USB_SERIAL
   std::unique_ptr<USBSerial> usb_serial_;
 #endif
@@ -61,6 +56,8 @@ protected:
 
   void recv_callback();
   void watchdog_callback();
+  void send_thread_impl();
+  size_t send_impl(const GkcBuffer &buffer);
 };
 } // namespace gkc
 } // namespace tritonai

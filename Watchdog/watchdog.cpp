@@ -1,5 +1,5 @@
 #include "watchdog.hpp"
-#include "mbed.h"
+
 #include <chrono>
 #include <functional>
 #include <iostream>

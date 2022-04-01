@@ -14,7 +14,7 @@
 #include <memory>
 #include <sstream>
 
-#include "mbed.h"
+#include "gkc_packets.hpp"
 
 #include "tai_gokart_packet/version.hpp"
 
@@ -37,21 +37,20 @@ Controller::Controller()
                        DEFAULT_CTL_CMD_LOST_TOLERANCE_MS),
       watchdog_(DEFAULT_WD_INTERVAL_MS, DEFAULT_WD_MAX_INACTIVITY_MS,
                 DEFAULT_WD_INTERVAL_MS) {
+  std::cout << "Initializing Controller class" << std::endl;
   attach(callback(this, &Controller::watchdog_callback));
   pc_hb_watcher_.attach(callback(this, &Controller::watchdog_callback));
   ctl_cmd_watcher_.attach(callback(this, &Controller::watchdog_callback));
-  heartbeat_ticker_.attach(
-      callback(this, &Controller::heartbeat_ticker_callback),
-      std::chrono::milliseconds(get_update_interval()));
-  pc_hb_watcher_.activate();
   Watchable::activate();
 
   watchdog_.add_to_watchlist(this);
   watchdog_.add_to_watchlist(&pc_hb_watcher_);
   watchdog_.add_to_watchlist(&ctl_cmd_watcher_);
+  std::cout << "Controller class initialized" << std::endl;
 }
 
 void Controller::watchdog_callback() {
+  std::cout << "Controller watchdog triggered" << std::endl;
   if (get_state() != GkcLifecycle::Uninitialized &&
       get_state() != GkcLifecycle::Emergency) {
     emergency_stop();
@@ -146,7 +145,8 @@ void Controller::packet_callback(const StateTransitionGkcPacket &packet) {
 void Controller::packet_callback(const ControlGkcPacket &packet) {
   // TODO
   std::stringstream s;
-  s << "[Control] thr: " << packet.throttle << ", brk: " << packet.brake << ", str: " << packet.steering;
+  s << "[Control] thr: " << packet.throttle << ", brk: " << packet.brake
+    << ", str: " << packet.steering;
   send_log(LogPacket::Severity::INFO, s.str());
 }
 
@@ -181,23 +181,7 @@ void Controller::packet_callback(const LogPacket &packet) {
            "Log packet received which should not be sent to MCU. Ignoring.");
 }
 
-void Controller::sensor_poll_ticker_callback() {
-  SensorGkcPacket pkt;
-  comm_.send(pkt);
-}
-
-void Controller::heartbeat_ticker_callback() {
-  static uint8_t rolling_counter = 0;
-  inc_count();
-  HeartbeatGkcPacket pkt;
-  pkt.rolling_counter = rolling_counter++;
-  pkt.state = get_state();
-  comm_.send(pkt);
-}
-
-void Controller::initialize_thread_callback() {
-    return;
-}
+void Controller::initialize_thread_callback() { return; }
 
 void Controller::send_log(const LogPacket::Severity &severity,
                           const std::string &what) {
@@ -207,10 +191,48 @@ void Controller::send_log(const LogPacket::Severity &severity,
   comm_.send(pkt);
 }
 
+void Controller::heartbeat_thread_callback() {
+  uint8_t rolling_counter = 0;
+  HeartbeatGkcPacket pkt;
+  Timer hb_timer;
+  while (!ThisThread::flags_get()) {
+    hb_timer.start();
+    inc_count();
+    pkt.rolling_counter = rolling_counter++;
+    pkt.state = get_state();
+    comm_.send(pkt);
+    hb_timer.stop();
+    auto sleep_time = std::chrono::milliseconds(get_update_interval()) -
+                      hb_timer.elapsed_time();
+    if (sleep_time > std::chrono::milliseconds(0)) {
+      ThisThread::sleep_for(
+          std::chrono::duration_cast<std::chrono::milliseconds>(sleep_time));
+    }
+  }
+}
+
+void Controller::sensor_poll_thread_callback() {
+  Timer hb_timer;
+  while (!ThisThread::flags_get()) {
+    hb_timer.start();
+    // TODO
+    hb_timer.stop();
+    auto sleep_time = std::chrono::milliseconds(get_update_interval()) -
+                      hb_timer.elapsed_time();
+    if (sleep_time > std::chrono::milliseconds(0)) {
+      ThisThread::sleep_for(
+          std::chrono::duration_cast<std::chrono::milliseconds>(sleep_time));
+    }
+  }
+}
+
 StateTransitionResult
 Controller::on_initialize(const GkcLifecycle &last_state) {
-    initialize_thread_callback();
-    return StateTransitionResult::SUCCESS;
+  pc_hb_watcher_.activate();
+  heartbeat_thread.start(callback(this, &Controller::heartbeat_thread_callback));
+  sensor_poll_thread.start(callback(this, &Controller::sensor_poll_thread_callback));
+  initialize_thread_callback();
+  return StateTransitionResult::SUCCESS;
 }
 
 StateTransitionResult

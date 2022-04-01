@@ -55,16 +55,15 @@ protected:
   Watchable ctl_cmd_watcher_;
   tritonai::gkc::Watchdog watchdog_;
 
-  Ticker sensor_poll_ticker_;
-  Ticker heartbeat_ticker_;
-
   Thread initialize_thread;
+  Thread heartbeat_thread;
+  Thread sensor_poll_thread;
 
   void watchdog_callback();
-  void sensor_poll_ticker_callback();
-  void heartbeat_ticker_callback();
   void initialize_thread_callback();
   void send_log(const LogPacket::Severity &severity, const std::string &what);
+  void heartbeat_thread_callback();
+  void sensor_poll_thread_callback();
 
   // GkcStateMachine API
   StateTransitionResult on_initialize(const GkcLifecycle &last_state);
@@ -73,6 +72,8 @@ protected:
   StateTransitionResult on_shutdown(const GkcLifecycle &last_state);
   StateTransitionResult on_emergency_stop(const GkcLifecycle &last_state);
   StateTransitionResult on_reinitialize(const GkcLifecycle &last_state);
+
+  // Data
 };
 } // namespace gkc
 } // namespace tritonai

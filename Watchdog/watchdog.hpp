@@ -6,7 +6,6 @@
 #include <utility>
 #include <vector>
 
-#include "mbed.h"
 #include "watchable.hpp"
 
 using tritonai::gkc::Watchable;

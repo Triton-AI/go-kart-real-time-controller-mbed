@@ -10,6 +10,7 @@
  */
 
 #include "state_machine.hpp"
+#include <iostream>
 
 namespace tritonai {
 namespace gkc {
@@ -98,6 +99,7 @@ StateTransitionResult GkcStateMachine::emergency_stop() {
     break;
   case StateTransitionResult::FAILURE:
   case StateTransitionResult::ERROR:
+    std::cout << "Resetting MCU for Estop Failure";
     NVIC_SystemReset();
   default:
     break;

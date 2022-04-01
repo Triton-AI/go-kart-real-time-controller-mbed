@@ -29,7 +29,7 @@ public:
     return activity;
   }
   void attach(Callback<void ()> func) { callback_func_ = func; }
-  void watchdog_trigger() { callback_func_.call(); }
+  void watchdog_trigger() { callback_func_(); }
 
 protected:
   bool active = false;
