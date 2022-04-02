@@ -31,7 +31,7 @@
 #define UART_TX_PIN PD_2
 
 // Generic comm settings
-#define RECV_BUFFER_SIZE 512
+#define RECV_BUFFER_SIZE 32
 // millisecond to wait between each serial/ethernet/can read
 #define WAIT_READ_MS 5
 #define SEND_QUEUE_SIZE 10
