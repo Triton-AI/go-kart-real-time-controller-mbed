@@ -59,5 +59,9 @@
 // Actuation
 // *********
 #define THROTTLE_PWM_PIN PA_5
+#define CAN1_RX PD_0
+#define CAN1_TX PD_1
+#define MAX_BRAKE_VAL 2500
+#define MIN_BRAKE_VAL 1500
 
 #endif // CONFIG_HPP_
