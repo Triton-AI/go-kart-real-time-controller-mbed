@@ -51,4 +51,13 @@
 // In active mode, how often should the MCU expect control command from PC
 #define DEFAULT_CTL_CMD_INTERVAL_MS 10
 #define DEFAULT_CTL_CMD_LOST_TOLERANCE_MS 200
+// How often should actuation be active
+#define DEFAULT_ACTUATION_INTERVAL_MS 1000
+#define DEFAULT_ACTUATION_LOST_TOLERANCE_MS 2000
+
+// *********
+// Actuation
+// *********
+#define THROTTLE_PWM_PIN PA_5
+
 #endif // CONFIG_HPP_

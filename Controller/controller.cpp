@@ -16,6 +16,7 @@
 #include <sstream>
 #include <string>
 
+#include "gkc_packet_utils.hpp"
 #include "gkc_packets.hpp"
 
 #include "tai_gokart_packet/version.hpp"
@@ -33,8 +34,9 @@ Controller::Controller()
     : GkcStateMachine(), GkcPacketSubscriber(),
       Watchable(DEFAULT_MCU_HEARTBEAT_INTERVAL_MS,
                 DEFAULT_MCU_HEARTBEAT_LOST_TOLERANCE_MS),
-      comm_(this), pc_hb_watcher_(DEFAULT_PC_HEARTBEAT_INTERVAL_MS,
-                                  DEFAULT_PC_HEARTBEAT_LOST_TOLERANCE_MS),
+      comm_(this), actuation_(),
+      pc_hb_watcher_(DEFAULT_PC_HEARTBEAT_INTERVAL_MS,
+                     DEFAULT_PC_HEARTBEAT_LOST_TOLERANCE_MS),
       ctl_cmd_watcher_(DEFAULT_CTL_CMD_INTERVAL_MS,
                        DEFAULT_CTL_CMD_LOST_TOLERANCE_MS),
       watchdog_(DEFAULT_WD_INTERVAL_MS, DEFAULT_WD_MAX_INACTIVITY_MS,
@@ -149,10 +151,14 @@ void Controller::packet_callback(const StateTransitionGkcPacket &packet) {
 
 void Controller::packet_callback(const ControlGkcPacket &packet) {
   // TODO
-  std::stringstream s;
-  s << "[Control] thr: " << packet.throttle << ", brk: " << packet.brake
-    << ", str: " << packet.steering;
-  send_log(LogPacket::Severity::INFO, s.str());
+  // std::stringstream s;
+  // s << "[Control] thr: " << packet.throttle << ", brk: " << packet.brake
+  //   << ", str: " << packet.steering;
+  // send_log(LogPacket::Severity::INFO, s.str());
+  if (get_state() == GkcLifecycle::Active)
+  {
+      actuation_.set_throttle_cmd(new float(packet.throttle));
+  }
 }
 
 void Controller::packet_callback(const SensorGkcPacket &packet) {
