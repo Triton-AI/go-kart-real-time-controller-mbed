@@ -11,8 +11,10 @@
 
 #include <chrono>
 #include <cstdint>
+#include <iostream>
 #include <memory>
 #include <sstream>
+#include <string>
 
 #include "gkc_packets.hpp"
 
@@ -58,6 +60,7 @@ void Controller::watchdog_callback() {
 }
 
 void Controller::packet_callback(const Handshake1GkcPacket &packet) {
+  std::cout << "Handshake received" << std::endl;
   if (get_state() == GkcLifecycle::Uninitialized) {
     Handshake2GkcPacket pkt;
     pkt.seq_number = packet.seq_number + 1;
@@ -109,10 +112,12 @@ void Controller::packet_callback(const HeartbeatGkcPacket &packet) {
   if (last_count != packet.rolling_counter) {
     pc_hb_watcher_.inc_count();
   }
+  last_count = packet.rolling_counter;
 }
 
 void Controller::packet_callback(const ConfigGkcPacket &packet) {
-  // TODO(haoru): start initialization task in a separate thread
+  initialize_thread.start(
+      callback(this, &Controller::initialize_thread_callback));
 }
 
 void Controller::packet_callback(const StateTransitionGkcPacket &packet) {
@@ -181,7 +186,7 @@ void Controller::packet_callback(const LogPacket &packet) {
            "Log packet received which should not be sent to MCU. Ignoring.");
 }
 
-void Controller::initialize_thread_callback() { return; }
+void Controller::initialize_thread_callback() { initialize(); }
 
 void Controller::send_log(const LogPacket::Severity &severity,
                           const std::string &what) {
@@ -212,13 +217,15 @@ void Controller::heartbeat_thread_callback() {
 }
 
 void Controller::sensor_poll_thread_callback() {
-  Timer hb_timer;
+  Timer sensor_timer;
+  SensorGkcPacket pkt;
   while (!ThisThread::flags_get()) {
-    hb_timer.start();
+    sensor_timer.start();
     // TODO
-    hb_timer.stop();
+    sensor_timer.stop();
+    comm_.send(pkt);
     auto sleep_time = std::chrono::milliseconds(get_update_interval()) -
-                      hb_timer.elapsed_time();
+                      sensor_timer.elapsed_time();
     if (sleep_time > std::chrono::milliseconds(0)) {
       ThisThread::sleep_for(
           std::chrono::duration_cast<std::chrono::milliseconds>(sleep_time));
@@ -228,9 +235,12 @@ void Controller::sensor_poll_thread_callback() {
 
 StateTransitionResult
 Controller::on_initialize(const GkcLifecycle &last_state) {
+  std::cout << "Start initialization" << std::endl;
   pc_hb_watcher_.activate();
-  heartbeat_thread.start(callback(this, &Controller::heartbeat_thread_callback));
-  sensor_poll_thread.start(callback(this, &Controller::sensor_poll_thread_callback));
+  heartbeat_thread.start(
+      callback(this, &Controller::heartbeat_thread_callback));
+  sensor_poll_thread.start(
+      callback(this, &Controller::sensor_poll_thread_callback));
   initialize_thread_callback();
   return StateTransitionResult::SUCCESS;
 }

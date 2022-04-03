@@ -57,7 +57,7 @@ protected:
   on_reinitialize(const GkcLifecycle &last_state) = 0;
 
 private:
-  GkcLifecycle state_;
+  GkcLifecycle state_ {GkcLifecycle::Uninitialized};
 };
 } // namespace gkc
 } // namespace tritonai

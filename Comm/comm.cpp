@@ -11,6 +11,8 @@
 
 #include <chrono>
 #include <memory>
+#include <ratio>
+#include <string>
 
 #include "Kernel.h"
 #include "comm.hpp"
@@ -79,28 +81,24 @@ void CommManager::recv_callback() {
 #endif
 
 #ifdef COMM_UART_SERIAL
+  std::cout << "Starting comm receive" << std::endl;
   static auto buffer = GkcBuffer(RECV_BUFFER_SIZE, 0);
   static auto wait_time = std::chrono::milliseconds(WAIT_READ_MS);
-  Timer sleep_timer;
   while (!ThisThread::flags_get()) {
     inc_count();
-    sleep_timer.start();
     if (uart_serial_->readable()) {
       auto num_byte_read = uart_serial_->read(buffer.data(), buffer.size());
       if (num_byte_read > 0) {
-        factory_->Receive(
-            GkcBuffer(buffer.begin(), buffer.end() + num_byte_read));
+        RawGkcBuffer buff;
+        buff.data = buffer.data();
+        buff.size = num_byte_read;
+        factory_->Receive(buff);
       }
-    }
-    sleep_timer.stop();
-    auto sleep_time = sleep_timer.elapsed_time() - wait_time;
-    if (sleep_time > std::chrono::milliseconds(0)) {
-      ThisThread::sleep_for(
-          std::chrono::duration_cast<std::chrono::milliseconds>(sleep_time));
     }
     // TODO(haoru): log the number of frequence compromises (sleep_time >
     // wait_time)
   }
+  std::cout << "Exiting comm receive" << std::endl;
 #endif
 }
 
