@@ -107,7 +107,7 @@ void CommManager::send_thread_impl() {
     GkcBuffer *buf_to_send;
     send_queue_.try_get_for(Kernel::wait_for_u32_forever, &buf_to_send);
     send_impl(*buf_to_send);
-    delete buf_to_send;
+    send_queue_data_.pop();
     // TODO(haoru): log the number of send failures
   }
 }

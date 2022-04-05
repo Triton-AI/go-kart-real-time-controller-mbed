@@ -34,7 +34,10 @@
 #define RECV_BUFFER_SIZE 32
 // millisecond to wait between each serial/ethernet/can read
 #define WAIT_READ_MS 5
+// outbound packet queue size
 #define SEND_QUEUE_SIZE 10
+// interval of sending sensor packets
+#define SEND_SENSOR_INTERVAL_MS 50
 
 // *********
 // Watchdogs
@@ -54,14 +57,41 @@
 // How often should actuation be active
 #define DEFAULT_ACTUATION_INTERVAL_MS 1000
 #define DEFAULT_ACTUATION_LOST_TOLERANCE_MS 2000
+// How often should sensor polling happen
+#define DEFAULT_SENSOR_POLL_INTERVAL_MS 10
+#define DEFAULT_SENSOR_POLL_LOST_TOLERANCE_MS 100
 
 // *********
 // Actuation
 // *********
+// Throttle
 #define THROTTLE_PWM_PIN PA_5
+// Braking
 #define CAN1_RX PD_0
 #define CAN1_TX PD_1
+#define CAN1_BAUDRATE 500000
 #define MAX_BRAKE_VAL 2500
 #define MIN_BRAKE_VAL 1500
+// Steering
+#define CAN2_RX PB_5
+#define CAN2_TX PB_6
+#define CAN2_BAUDRATE 500000
+#define MAX_STEER_DEG 270.0
+#define MIN_STEER_DEG 90.0
+#define NEUTRAL_STEER_DEG 180.0
+#define MAX_STEER_SPEED_ERPM 1000.0
+#define MAX_CURRENT_MA 3000.0
+#define STEER_P 20.0
+#define STEER_I 0.0
+#define STEER_D 3.0
+#define STEER_DEADBAND_DEG 2.0
+#define PID_INTERVAL_MS 10
+#define VESC_ID 3
+
+// *******
+// Sensors
+// *******
+// PWM steering encoder
+#define STEER_ENCODER_PIN A0
 
 #endif // CONFIG_HPP_

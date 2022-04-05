@@ -11,11 +11,17 @@
 
 #include "actuation_controller.hpp"
 #include "Kernel.h"
+#include "PwmIn.h"
 #include "ThisThread.h"
+#include "Thread.h"
 #include "config.hpp"
 #include "watchdog.hpp"
+#include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <string>
+
+#define M_PI 3.14159265
 
 namespace tritonai {
 namespace gkc {
@@ -42,17 +48,58 @@ D map_range(const S &source, const S &source_min, const S &source_max,
   return static_cast<D>(source_f * (dest_max - dest_min) + dest_min);
 }
 
+template <typename S, typename D> D deg_to_rad(const S &deg) {
+  return static_cast<D>(deg * M_PI / 180.0);
+}
+
+bool ActuationController::is_ready() {
+  return sensor_poll_thread.get_state() == Thread::Running ||
+         sensor_poll_thread.get_state() == Thread::WaitingDelay;
+}
+
+void ActuationController::populate_reading(SensorGkcPacket &pkt) {
+  if (sensors_lock.trylock_for(std::chrono::milliseconds(10))) {
+    pkt.values.steering_angle_rad = sensors.steering_rad;
+    pkt.values.brake_pressure = sensors.brake_psi;
+    pkt.values.wheel_speed_fl = sensors.fl_rad;
+    pkt.values.wheel_speed_fr = sensors.fr_rad;
+    pkt.values.wheel_speed_rl = sensors.rl_rad;
+    pkt.values.wheel_speed_rr = sensors.rr_rad;
+    pkt.values.servo_angle_rad = static_cast<float>(sensors.steering_output);
+    sensors_lock.unlock();
+  }
+}
+
 PwmOut throttle_pin(THROTTLE_PWM_PIN);
-CAN can1(CAN1_RX, CAN1_TX, 500000);
+PwmIn steer_encoder(STEER_ENCODER_PIN);
+CAN can_steer(CAN1_RX, CAN1_TX, CAN1_BAUDRATE);
+CAN can_brake(CAN2_RX, CAN2_TX, CAN2_BAUDRATE);
+
+PidCoefficients steering_pid_coeff{STEER_P,
+                                   STEER_I,
+                                   STEER_D,
+                                   -MAX_STEER_SPEED_ERPM,
+                                   MAX_STEER_SPEED_ERPM,
+                                   -MAX_STEER_SPEED_ERPM,
+                                   MAX_STEER_SPEED_ERPM};
 
 ActuationController::ActuationController()
     : Watchable(DEFAULT_ACTUATION_INTERVAL_MS,
-                DEFAULT_ACTUATION_LOST_TOLERANCE_MS) {
+                DEFAULT_ACTUATION_LOST_TOLERANCE_MS),
+      ISensorProvider(),
+      current_steering_cmd(deg_to_rad<int32_t, float>(NEUTRAL_STEER_DEG)),
+      steering_pid("steering", steering_pid_coeff) {
+  std::cout << "Initializing actuation" << std::endl;
   throttle_thread.start(
       callback(this, &ActuationController::throttle_thread_impl));
   steering_thread.start(
       callback(this, &ActuationController::steering_thread_impl));
+  steering_pid_thread.start(
+      callback(this, &ActuationController::steering_pid_thread_impl));
   brake_thread.start(callback(this, &ActuationController::brake_thread_impl));
+  sensor_poll_thread.start(
+      callback(this, &ActuationController::sensor_poll_thread_impl));
+  std::cout << "Actuation initialized" << std::endl;
 }
 
 void ActuationController::throttle_thread_impl() {
@@ -67,7 +114,51 @@ void ActuationController::throttle_thread_impl() {
   }
 }
 
-void ActuationController::steering_thread_impl() {}
+void ActuationController::steering_pid_thread_impl() {
+  static constexpr std::chrono::milliseconds pid_interval(
+      static_cast<uint32_t>(PID_INTERVAL_MS));
+#define RPM_EXTENDED_ID 0x03
+#define CURRENT_EXTENDED_ID 0x01
+  static constexpr uint32_t rpm_id =
+      (static_cast<uint32_t>(RPM_EXTENDED_ID) << sizeof(uint8_t) * 8) |
+      static_cast<uint32_t>(VESC_ID);
+  static constexpr uint32_t current_id =
+      (static_cast<uint32_t>(CURRENT_EXTENDED_ID) << sizeof(uint8_t) * 8) |
+      static_cast<uint32_t>(VESC_ID);
+
+  while (!ThisThread::flags_get()) {
+    sensors_lock.lock();
+    steering_cmd_lock.lock();
+    sensors.steering_output = static_cast<int32_t>(steering_pid.update(
+        current_steering_cmd - sensors.steering_rad, PID_INTERVAL_MS / 1000.0));
+    steering_cmd_lock.unlock();
+    if (abs(sensors.steering_rad - current_steering_cmd) <
+        deg_to_rad<float, float>(STEER_DEADBAND_DEG)) {
+      steering_pid.reset_integral_error(0.0);
+      sensors.steering_output = 0.0;
+    }
+    auto data = sensors.steering_output;
+    sensors_lock.unlock();
+    can_steer.write(CANMessage(rpm_id, reinterpret_cast<uint8_t *>(&data), 4,
+                               CANData, CANExtended));
+    ThisThread::sleep_for(pid_interval);
+  }
+}
+
+void ActuationController::steering_thread_impl() {
+  float *cmd;
+  while (!ThisThread::flags_get()) {
+    steering_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
+    *cmd = clamp<float>(-1.0, 1.0, *cmd);
+    *cmd =
+        map_range<float, float>(*cmd, -1.0, 1.0, MIN_STEER_DEG, MAX_STEER_DEG);
+    *cmd = deg_to_rad<float, float>(*cmd);
+    steering_cmd_lock.lock();
+    current_steering_cmd = *cmd;
+    steering_cmd_lock.unlock();
+    delete cmd;
+  }
+}
 
 void ActuationController::brake_thread_impl() {
   // CAN frame format
@@ -90,7 +181,20 @@ void ActuationController::brake_thread_impl() {
                                               MIN_BRAKE_VAL, MAX_BRAKE_VAL);
     message[2] = brake_output & 0xFF;
     message[3] = 0xC0 | ((brake_output >> 8) & 0x1F);
-    can1.write(CANMessage(0x00FF0000, message, 8, CANData, CANExtended));
+    can_brake.write(CANMessage(0x00FF0000, message, 8, CANData, CANExtended));
+  }
+}
+
+void ActuationController::sensor_poll_thread_impl() {
+  static constexpr std::chrono::milliseconds poll_interval{
+      DEFAULT_SENSOR_POLL_INTERVAL_MS};
+  while (!ThisThread::flags_get()) {
+    sensors_lock.lock();
+    sensors.steering_rad = steer_encoder.dutycycle();
+    sensors.steering_rad =
+        map_range<float, float>(sensors.steering_rad, 0.0, 1.0, 0.0, 2 * M_PI);
+    sensors_lock.unlock();
+    ThisThread::sleep_for(poll_interval);
   }
 }
 } // namespace gkc

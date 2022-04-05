@@ -1,4 +1,5 @@
 #include <iostream>
+#include <memory>
 #include <string>
 
 #include "PinNames.h"
@@ -12,7 +13,7 @@ int main() {
   std::cout << "[Triton AI Go-Kart Real-Time Controller]" << std::endl;
   std::cout << "[Copyright Triton AI 2022]" << std::endl;
   button.rise(&NVIC_SystemReset);
-  Controller controller;
+  auto controller = new Controller();
   while (1)
     ;
 }

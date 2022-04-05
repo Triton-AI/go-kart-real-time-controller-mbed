@@ -34,7 +34,7 @@ Controller::Controller()
     : GkcStateMachine(), GkcPacketSubscriber(),
       Watchable(DEFAULT_MCU_HEARTBEAT_INTERVAL_MS,
                 DEFAULT_MCU_HEARTBEAT_LOST_TOLERANCE_MS),
-      comm_(this), actuation_(),
+      comm_(this), actuation_(), sensor_(),
       pc_hb_watcher_(DEFAULT_PC_HEARTBEAT_INTERVAL_MS,
                      DEFAULT_PC_HEARTBEAT_LOST_TOLERANCE_MS),
       ctl_cmd_watcher_(DEFAULT_CTL_CMD_INTERVAL_MS,
@@ -50,6 +50,9 @@ Controller::Controller()
   watchdog_.add_to_watchlist(this);
   watchdog_.add_to_watchlist(&pc_hb_watcher_);
   watchdog_.add_to_watchlist(&ctl_cmd_watcher_);
+
+  sensor_.register_provider(&actuation_);
+
   std::cout << "Controller class initialized" << std::endl;
 }
 
@@ -151,13 +154,14 @@ void Controller::packet_callback(const StateTransitionGkcPacket &packet) {
 
 void Controller::packet_callback(const ControlGkcPacket &packet) {
   // TODO
-  //std::stringstream s;
-  //s << "[Control] thr: " << packet.throttle << ", brk: " << packet.brake
+  // std::stringstream s;
+  // s << "[Control] thr: " << packet.throttle << ", brk: " << packet.brake
   //  << ", str: " << packet.steering;
-  //send_log(LogPacket::Severity::INFO, s.str());
+  // send_log(LogPacket::Severity::INFO, s.str());
   if (get_state() == GkcLifecycle::Active) {
     actuation_.set_throttle_cmd(new float(packet.throttle));
     actuation_.set_brake_cmd(new float(packet.brake));
+    actuation_.set_steering_cmd(new float(packet.steering));
   }
 }
 
@@ -224,12 +228,10 @@ void Controller::heartbeat_thread_callback() {
 
 void Controller::sensor_poll_thread_callback() {
   Timer sensor_timer;
-  SensorGkcPacket pkt;
   while (!ThisThread::flags_get()) {
     sensor_timer.start();
-    // TODO
+    comm_.send(sensor_.get_packet());
     sensor_timer.stop();
-    comm_.send(pkt);
     auto sleep_time = std::chrono::milliseconds(get_update_interval()) -
                       sensor_timer.elapsed_time();
     if (sleep_time > std::chrono::milliseconds(0)) {

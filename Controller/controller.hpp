@@ -52,6 +52,7 @@ public:
 protected:
   CommManager comm_;
   ActuationController actuation_;
+  SensorReader sensor_;
   ConfigGkcPacket::Configurables configs_;
   Watchable pc_hb_watcher_;
   Watchable ctl_cmd_watcher_;
