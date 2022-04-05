@@ -42,10 +42,11 @@ public:
   }
 
   std::string get_name() const { return name_; }
-  void dump() const {
+  void dump(const bool &newline = true) const {
     std::cout << "[Profiler " << get_name()
               << "]: last_time (us): " << get_last_time().count()
-              << ", ave_time (us): " << get_average_time().count();
+              << ", ave_time (us): " << get_average_time().count()
+              << (newline ? "\n" : "\r");
   }
 
 protected:
