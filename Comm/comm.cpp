@@ -74,8 +74,7 @@ void CommManager::recv_callback() {
   do {
     auto num_byte_read = usb_serial_->read(buffer.data(), buffer.size());
     if (num_byte_read > 0) {
-      factory_->Receive(
-          GkcBuffer(buffer.begin(), buffer.begin() + num_byte_read));
+      factory_->Receive(RawGkcBuffer{buffer.data(), buffer.size()});
     }
   } while (usb_serial_->available());
 #endif
