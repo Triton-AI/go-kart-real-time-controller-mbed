@@ -1,3 +1,4 @@
+# MBED
 .build
 .mbed
 projectfiles
@@ -5,3 +6,7 @@ projectfiles
 mbed-os
 BUILD
 
+# External Library
+External/**
+!/**/.gitkeep
+PwmIn
