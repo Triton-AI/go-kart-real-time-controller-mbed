@@ -15,6 +15,7 @@
 #include "ThisThread.h"
 #include "Thread.h"
 #include "config.hpp"
+#include "global_profilers.hpp"
 #include "watchdog.hpp"
 #include <chrono>
 #include <cmath>

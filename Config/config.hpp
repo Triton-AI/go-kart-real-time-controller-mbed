@@ -83,8 +83,8 @@
 #define MAX_CURRENT_MA 3000.0
 #define STEER_P 20.0
 #define STEER_I 0.0
-#define STEER_D 3.0
-#define STEER_DEADBAND_DEG 2.0
+#define STEER_D 1.0
+#define STEER_DEADBAND_DEG 0.0
 #define PID_INTERVAL_MS 10
 #define VESC_ID 3
 
