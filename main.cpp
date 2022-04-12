@@ -1,8 +1,21 @@
+/**
+ * @file main.cpp
+ * @author Haoru Xue (haoru.xue@autoware.org)
+ * @brief
+ * @version 0.1
+ * @date 2022-04-10
+ *
+ * @copyright Copyright 2022 Triton AI
+ *
+ */
+
+#include <chrono>
 #include <iostream>
 #include <memory>
 #include <string>
 
 #include "PinNames.h"
+#include "ThisThread.h"
 #include "controller.hpp"
 #include "mbed.h"
 

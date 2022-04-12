@@ -8,7 +8,8 @@
  * @copyright Copyright 2022 Triton AI
  *
  */
-
+#ifndef PROFILER_HPP_
+#define PROFILER_HPP_
 #include <chrono>
 #include <cstdint>
 #include <iostream>
@@ -64,3 +65,4 @@ protected:
 };
 } // namespace gkc
 } // namespace tritonai
+#endif

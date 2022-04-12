@@ -14,11 +14,12 @@
 
 #include "Mutex.h"
 #include "Queue.h"
+#include "logger.hpp"
 #include "mbed.h"
+#include "pid_controller.hpp"
 #include "sensor_reader.hpp"
 #include "watchable.hpp"
 #include "watchdog.hpp"
-#include "pid_controller.hpp"
 
 namespace tritonai {
 namespace gkc {
@@ -34,7 +35,7 @@ struct ActuationSensors {
 
 class ActuationController : public Watchable, public ISensorProvider {
 public:
-  ActuationController();
+  explicit ActuationController(ILogger *logger);
 
   float get_throttle_cmd() const { return current_throttle_cmd; };
   float get_steering_cmd() const { return current_steering_cmd; };
@@ -63,8 +64,6 @@ protected:
   Thread sensor_poll_thread;
 
   ActuationSensors sensors{};
-  Mutex sensors_lock;
-  Mutex steering_cmd_lock;
 
   void throttle_thread_impl();
   void steering_thread_impl();
@@ -73,6 +72,7 @@ protected:
   void sensor_poll_thread_impl();
 
   PidController steering_pid;
+  ILogger *logger;
 };
 } // namespace gkc
 } // namespace tritonai

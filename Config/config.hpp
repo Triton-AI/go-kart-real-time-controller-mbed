@@ -27,8 +27,10 @@
 
 // UART-specific settings
 #define BAUD_RATE 115200
-#define UART_RX_PIN PC_12
-#define UART_TX_PIN PD_2
+#define UART_RX_PIN PD_2
+#define UART_TX_PIN PC_12
+//#define UART_RX_PIN PA_11
+//#define UART_TX_PIN PA_12
 
 // Generic comm settings
 #define RECV_BUFFER_SIZE 32
@@ -65,17 +67,19 @@
 // Actuation
 // *********
 // Throttle
-#define THROTTLE_PWM_PIN PA_5
+#define THROTTLE_PWM_PIN PA_6
 // Braking
 #define CAN1_RX PD_0
 #define CAN1_TX PD_1
 #define CAN1_BAUDRATE 500000
+#define CAN_STEER CAN_1 // Which CAN bus to use for steering [CAN_1 | CAN_2]
 #define MAX_BRAKE_VAL 2500
 #define MIN_BRAKE_VAL 1500
 // Steering
 #define CAN2_RX PB_5
 #define CAN2_TX PB_6
 #define CAN2_BAUDRATE 500000
+#define CAN_BRAKE CAN_1 // Which CAN bus to use for brake [CAN_1 | CAN_2]
 #define MAX_STEER_DEG 270.0
 #define MIN_STEER_DEG 90.0
 #define NEUTRAL_STEER_DEG 180.0
@@ -84,7 +88,7 @@
 #define STEER_P 20.0
 #define STEER_I 0.0
 #define STEER_D 1.0
-#define STEER_DEADBAND_DEG 0.0
+#define STEER_DEADBAND_DEG 0.5
 #define PID_INTERVAL_MS 10
 #define VESC_ID 3
 
@@ -93,5 +97,10 @@
 // *******
 // PWM steering encoder
 #define STEER_ENCODER_PIN A0
+
+// *****
+// ESTOP
+// *****
+#define ESTOP_PIN PD_8
 
 #endif // CONFIG_HPP_
