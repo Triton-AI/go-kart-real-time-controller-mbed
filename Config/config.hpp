@@ -72,14 +72,14 @@
 #define CAN1_RX PD_0
 #define CAN1_TX PD_1
 #define CAN1_BAUDRATE 500000
-#define CAN_STEER CAN_1 // Which CAN bus to use for steering [CAN1 | CAN2]
+#define CAN_STEER CAN_1 // Which CAN bus to use for steering [CAN_1 | CAN_2]
 #define MAX_BRAKE_VAL 2500
 #define MIN_BRAKE_VAL 1500
 // Steering
 #define CAN2_RX PB_5
 #define CAN2_TX PB_6
 #define CAN2_BAUDRATE 500000
-#define CAN_BRAKE CAN_1 // Which CAN bus to use for brake [CAN1 | CAN2]
+#define CAN_BRAKE CAN_1 // Which CAN bus to use for brake [CAN_1 | CAN_2]
 #define MAX_STEER_DEG 270.0
 #define MIN_STEER_DEG 90.0
 #define NEUTRAL_STEER_DEG 180.0
