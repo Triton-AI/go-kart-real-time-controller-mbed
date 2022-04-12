@@ -37,7 +37,7 @@ CommManager::CommManager(GkcPacketSubscriber *sub)
 #ifdef COMM_UART_SERIAL
   std::cout << "This firmware uses UART serial" << std::endl;
   uart_serial_ =
-      std::make_unique<BufferedSerial>(UART_RX_PIN, UART_TX_PIN, BAUD_RATE);
+      std::make_unique<BufferedSerial>(UART_TX_PIN, UART_RX_PIN, BAUD_RATE);
   uart_serial_thread_.start(mbed::callback(this, &CommManager::recv_callback));
 #endif
 
