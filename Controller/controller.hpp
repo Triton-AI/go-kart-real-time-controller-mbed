@@ -57,6 +57,7 @@ public:
   void packet_callback(const LogPacket &packet);
 
 protected:
+  //If we do comm_.send(packet); it will send the packet
   CommManager comm_;
   ActuationController actuation_;
   //This class will take care of reading the sensors (besides the sensors needed for the acutators)
@@ -75,7 +76,7 @@ protected:
   //This thread sends hearbeat packets to the main computer
   Thread heartbeat_thread;
   void heartbeat_thread_callback();
-  //This thread sends sensor packets to the main computer
+  //This thread sends sensor packets to the main computer. It uses the sensor_
   Thread sensor_poll_thread;
   void sensor_poll_thread_callback();
 

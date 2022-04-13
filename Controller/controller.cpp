@@ -206,6 +206,8 @@ void Controller::packet_callback(const ConfigGkcPacket &packet) {
       callback(this, &Controller::initialize_thread_callback));
 }
 
+void Controller::initialize_thread_callback() { initialize(); }
+
 /**
  * @brief This function is cakked whenever we receive a StateTransitionGkcPacket.
  * This function is one of the functions we 'promised' to implement when we inherited from GkcPacketSubscriber.
@@ -333,8 +335,13 @@ void Controller::packet_callback(const LogPacket &packet) {
            "Log packet received which should not be sent to MCU. Ignoring.");
 }
 
-void Controller::initialize_thread_callback() { initialize(); }
 
+/**
+ * @brief It uses the CommManager (comm_) to send the log
+ * 
+ * @param severity severity of the log (eg. LogPacket::Severity::WARNING)
+ * @param what The text on the log
+ */
 void Controller::send_log(const LogPacket::Severity &severity,
                           const std::string &what) {
   LogPacket pkt;
@@ -343,10 +350,16 @@ void Controller::send_log(const LogPacket::Severity &severity,
   comm_.send(pkt);
 }
 
+/**
+ * @brief it sends a HeartbeatGkcPacket to the main computer at the frecuency using the period from the watchdog.
+ * This function is running on the thread 'heartbeat_thread', and it is configured to run on Controller::on_initialize()
+ * 
+ */
 void Controller::heartbeat_thread_callback() {
   uint8_t rolling_counter = 0;
   HeartbeatGkcPacket pkt;
   Timer hb_timer;
+  //Infinite loop. Equivalent to while(1);
   while (!ThisThread::flags_get()) {
     hb_timer.start();
     inc_count();
@@ -363,6 +376,11 @@ void Controller::heartbeat_thread_callback() {
   }
 }
 
+/**
+ * @brief it sends a sensor packet to the main computer at the frecuency using the period from the watchdog.
+ * It does sensor_.get_packet() to get the packet populated with all the sensors info.
+ * 
+ */
 void Controller::sensor_poll_thread_callback() {
   Timer sensor_timer;
   while (!ThisThread::flags_get()) {
@@ -378,6 +396,17 @@ void Controller::sensor_poll_thread_callback() {
   }
 }
 
+/**
+ * @brief This function is cakked whenever the state machine goes to the Initialize state.
+ * This function is one of the functions we 'promised' to implement when we inherited from GkcStateMachine.
+ * More information about the state machine on https://github.com/Triton-AI/go-kart-real-time-controller-mbed/blob/master/Design/state_machine.md
+ * 
+ * It activates the harbeat watchdog, starts the thread that sends harbeat packets to the main computer, and the thread that reads the sensors.
+ * It starths the function GkcStateMachine::initialize()
+ * 
+ * @param last_state  The preious state
+ * @return StateTransitionResult
+ */
 StateTransitionResult
 Controller::on_initialize(const GkcLifecycle &last_state) {
   std::cout << "Start initialization" << std::endl;
