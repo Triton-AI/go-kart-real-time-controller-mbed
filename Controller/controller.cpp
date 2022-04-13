@@ -33,6 +33,7 @@ namespace gkc {
 
   /**
    * @brief Construct a new Controller:: Controller object
+   * it declares the wachdog parameters and callback functions, and adds actuation_ to the sensor list (because the actuator has sensros like the steering encoder, and throttle speed) 
    * 
    */
 Controller::Controller()
@@ -63,6 +64,13 @@ Controller::Controller()
   std::cout << "Controller class initialized" << std::endl;
 }
 
+/**
+ * @brief This function will be called when one of the wachdogs is triggered
+ * It is configured as the wachdog callback function on Controller::Controller()
+ * If we are not on the Unizialized state or Emergency state it sends the state machine to emergecy_stop state.
+ * Then, to change what the kart does when the wachdog is triggered (there is an emergecy stop) you should change Controller::on_emergency_stop()
+ * 
+ */
 void Controller::watchdog_callback() {
   std::cout << "Controller watchdog triggered" << std::endl;
   if (get_state() != GkcLifecycle::Uninitialized &&
@@ -71,6 +79,16 @@ void Controller::watchdog_callback() {
   }
 }
 
+/**
+ * @brief This function is cakked whenever we receive a Handshake1GkcPacket.
+ * This function is one of the functions we 'promised' to implement when we inherited from GkcPacketSubscriber.
+ * More information about the communication protocol on https://github.com/Triton-AI/go-kart-real-time-controller/blob/main/ROS2/src/tai_gokart_packet/design/Packet_API.md
+ * 
+ * It sends back a Handshake2GkcPacket with a seq_number 1 higher than the received one.
+ * If the state machine is not on Unitialized mode it will raise a warning, as it should be receiving this type of packet at that point
+ * 
+ * @param packet the received packet. It contains the received information.
+ */
 void Controller::packet_callback(const Handshake1GkcPacket &packet) {
   std::cout << "Handshake received" << std::endl;
   if (get_state() == GkcLifecycle::Uninitialized) {
@@ -83,11 +101,29 @@ void Controller::packet_callback(const Handshake1GkcPacket &packet) {
   }
 }
 
+/**
+ * @brief This function is cakked whenever we receive a Handshake2GkcPacket.
+ * This function is one of the functions we 'promised' to implement when we inherited from GkcPacketSubscriber.
+ * More information about the communication protocol on https://github.com/Triton-AI/go-kart-real-time-controller/blob/main/ROS2/src/tai_gokart_packet/design/Packet_API.md
+ * 
+ * It raises a warning because as the communication protocol is defined the RTC should be receiving this type of packets.
+ * 
+ * @param packet the received packet. It contains the received information.
+ */
 void Controller::packet_callback(const Handshake2GkcPacket &packet) {
   send_log(LogPacket::Severity::WARNING,
            "Handshake #2 received which should not be sent to MCU. Ignoring.");
 }
 
+/**
+ * @brief This function is cakked whenever we receive a GetFirmwareVersionGkcPacket.
+ * This function is one of the functions we 'promised' to implement when we inherited from GkcPacketSubscriber.
+ * More information about the communication protocol on https://github.com/Triton-AI/go-kart-real-time-controller/blob/main/ROS2/src/tai_gokart_packet/design/Packet_API.md
+ * 
+ * It sends back a FirmwareVersionGkcPacket with the version of the communication library running on the RTC.
+ * 
+ * @param packet the received packet. It contains the received information.
+ */
 void Controller::packet_callback(const GetFirmwareVersionGkcPacket &packet) {
   FirmwareVersionGkcPacket pkt;
   pkt.major = GkcPacketLibVersion::MAJOR;
@@ -96,12 +132,31 @@ void Controller::packet_callback(const GetFirmwareVersionGkcPacket &packet) {
   comm_.send(pkt);
 }
 
+/**
+ * @brief This function is cakked whenever we receive a FirmwareVersionGkcPacket.
+ * This function is one of the functions we 'promised' to implement when we inherited from GkcPacketSubscriber.
+ * More information about the communication protocol on https://github.com/Triton-AI/go-kart-real-time-controller/blob/main/ROS2/src/tai_gokart_packet/design/Packet_API.md
+ * 
+ * It raises a warning because as the communication protocol is defined the RTC should be receiving this type of packets. It is the main robot computer to check the version compatibility
+ * 
+ * @param packet the received packet. It contains the received information.
+ */
 void Controller::packet_callback(const FirmwareVersionGkcPacket &packet) {
   send_log(LogPacket::Severity::WARNING,
            "Firmware version received, but checking version is PC's "
            "responsibility. Ignoring.");
 }
 
+/**
+ * @brief This function is cakked whenever we receive a ResetMcuGkcPacket.
+ * This function is one of the functions we 'promised' to implement when we inherited from GkcPacketSubscriber.
+ * More information about the communication protocol on https://github.com/Triton-AI/go-kart-real-time-controller/blob/main/ROS2/src/tai_gokart_packet/design/Packet_API.md
+ * 
+ * If the state machine is not on the Unitialized state it raises a warning because it can only be reseted on that state.
+ * It checks that the received packet contains the 'magic' number. This is like a pasword to reset it so not anyonw can reset it.
+ * 
+ * @param packet the received packet. It contains the received information.
+ */
 void Controller::packet_callback(const ResetMcuGkcPacket &packet) {
   if (get_state() != GkcLifecycle::Uninitialized) {
     send_log(LogPacket::Severity::WARNING,
@@ -119,6 +174,16 @@ void Controller::packet_callback(const ResetMcuGkcPacket &packet) {
   }
 }
 
+/**
+ * @brief This function is cakked whenever we receive a HeartbeatGkcPacket.
+ * This function is one of the functions we 'promised' to implement when we inherited from GkcPacketSubscriber.
+ * More information about the communication protocol on https://github.com/Triton-AI/go-kart-real-time-controller/blob/main/ROS2/src/tai_gokart_packet/design/Packet_API.md
+ * 
+ * The porpuse of this packet is to be sent periodically to test communication is working. We have a watchdog that is monitoring that we aare receiving this type of packet. If we don't for longer than the watchdog is configured on the watchdog will call the function Controller::watchdog_callback() whcich will set the state machine to emergency_stop and stop the kart.
+ * This function kicks the watchdog 'pc_hb_watcher_' so it knows we are still receiving communication.
+ * 
+ * @param packet the received packet. It contains the received information.
+ */
 void Controller::packet_callback(const HeartbeatGkcPacket &packet) {
   static uint8_t last_count = packet.rolling_counter;
   if (last_count != packet.rolling_counter) {
@@ -127,11 +192,29 @@ void Controller::packet_callback(const HeartbeatGkcPacket &packet) {
   last_count = packet.rolling_counter;
 }
 
+/**
+ * @brief This function is cakked whenever we receive a ConfigGkcPacket.
+ * This function is one of the functions we 'promised' to implement when we inherited from GkcPacketSubscriber.
+ * More information about the communication protocol on https://github.com/Triton-AI/go-kart-real-time-controller/blob/main/ROS2/src/tai_gokart_packet/design/Packet_API.md
+ * 
+ * This function runs the function Controller::initialize_thread_callback() on the thread 'initialize_thread' because the function is long and these functions have to be short to not block the communication. Running it on another thread won't block the communication. ???
+ * 
+ * @param packet the received packet. It contains the received information.
+ */
 void Controller::packet_callback(const ConfigGkcPacket &packet) {
   initialize_thread.start(
       callback(this, &Controller::initialize_thread_callback));
 }
 
+/**
+ * @brief This function is cakked whenever we receive a StateTransitionGkcPacket.
+ * This function is one of the functions we 'promised' to implement when we inherited from GkcPacketSubscriber.
+ * More information about the communication protocol on https://github.com/Triton-AI/go-kart-real-time-controller/blob/main/ROS2/src/tai_gokart_packet/design/Packet_API.md
+ * 
+ * This packet will change the state machine to the one indicated. Some states are unaccesible using this type os packet and it raises a warning if we try.
+ * 
+ * @param packet the received packet. It contains the received information.
+ */
 void Controller::packet_callback(const StateTransitionGkcPacket &packet) {
   switch (static_cast<GkcLifecycle>(packet.requested_state)) {
   case GkcLifecycle::Uninitialized:
@@ -159,6 +242,16 @@ void Controller::packet_callback(const StateTransitionGkcPacket &packet) {
   }
 }
 
+/**
+ * @brief This function is cakked whenever we receive a ControlGkcPacket.
+ * This function is one of the functions we 'promised' to implement when we inherited from GkcPacketSubscriber.
+ * More information about the communication protocol on https://github.com/Triton-AI/go-kart-real-time-controller/blob/main/ROS2/src/tai_gokart_packet/design/Packet_API.md
+ * 
+ * This packet will make the kart to move the actuators. It does so by interfacing the Actuator class (actuation_) with the methods set_throttle_cmd, set_brake_cmd, set_steering_cmd
+ * It checks the state machine is on Active state.
+ * 
+ * @param packet the received packet. It contains the received information.
+ */
 void Controller::packet_callback(const ControlGkcPacket &packet) {
   // TODO
   // std::stringstream s;
@@ -166,17 +259,36 @@ void Controller::packet_callback(const ControlGkcPacket &packet) {
   //  << ", str: " << packet.steering;
   // send_log(LogPacket::Severity::INFO, s.str());
   if (get_state() == GkcLifecycle::Active) {
+    //it does new float(.) because the functions receive a float* and not a float. That way we create a float* that has the value of what we want.
     actuation_.set_throttle_cmd(new float(packet.throttle));
     actuation_.set_brake_cmd(new float(packet.brake));
     actuation_.set_steering_cmd(new float(packet.steering));
   }
 }
 
+/**
+ * @brief This function is cakked whenever we receive a SensorGkcPacket.
+ * This function is one of the functions we 'promised' to implement when we inherited from GkcPacketSubscriber.
+ * More information about the communication protocol on https://github.com/Triton-AI/go-kart-real-time-controller/blob/main/ROS2/src/tai_gokart_packet/design/Packet_API.md
+ * 
+ * It raises a warning because as the communication protocol is defined the RTC should be receiving this type of packets. We should send sensor values to the computer, not the other way round.
+ * 
+ * @param packet the received packet. It contains the received information.
+ */
 void Controller::packet_callback(const SensorGkcPacket &packet) {
   send_log(LogPacket::Severity::WARNING,
            "A sensor packet was received which MCU will ignore.");
 }
 
+/**
+ * @brief This function is cakked whenever we receive a Shutdown1GkcPacket.
+ * This function is one of the functions we 'promised' to implement when we inherited from GkcPacketSubscriber.
+ * More information about the communication protocol on https://github.com/Triton-AI/go-kart-real-time-controller/blob/main/ROS2/src/tai_gokart_packet/design/Packet_API.md
+ * 
+ * This packet shuts down the RTC. It checks the state machine is on Inactive, or Active state. It sets the state machine to Shutdown state
+ * 
+ * @param packet the received packet. It contains the received information.
+ */
 void Controller::packet_callback(const Shutdown1GkcPacket &packet) {
   if (get_state() != GkcLifecycle::Inactive &&
       get_state() != GkcLifecycle::Active) {
@@ -193,11 +305,29 @@ void Controller::packet_callback(const Shutdown1GkcPacket &packet) {
   GkcStateMachine::shutdown();
 }
 
+/**
+ * @brief This function is cakked whenever we receive a Shutdown2GkcPacket.
+ * This function is one of the functions we 'promised' to implement when we inherited from GkcPacketSubscriber.
+ * More information about the communication protocol on https://github.com/Triton-AI/go-kart-real-time-controller/blob/main/ROS2/src/tai_gokart_packet/design/Packet_API.md
+ * 
+ * It raises a warning because as the communication protocol is defined the RTC should be receiving this type of packet.
+ * 
+ * @param packet the received packet. It contains the received information.
+ */
 void Controller::packet_callback(const Shutdown2GkcPacket &packet) {
   send_log(LogPacket::Severity::WARNING,
            "Shutdown #2 received which should not be sent to MCU. Ignoring.");
 }
 
+/**
+ * @brief This function is cakked whenever we receive a LogPacket.
+ * This function is one of the functions we 'promised' to implement when we inherited from GkcPacketSubscriber.
+ * More information about the communication protocol on https://github.com/Triton-AI/go-kart-real-time-controller/blob/main/ROS2/src/tai_gokart_packet/design/Packet_API.md
+ * 
+ * It raises a warning because as the communication protocol is defined the RTC should be receiving this type of packet.
+ * 
+ * @param packet the received packet. It contains the received information.
+ */
 void Controller::packet_callback(const LogPacket &packet) {
   send_log(LogPacket::Severity::WARNING,
            "Log packet received which should not be sent to MCU. Ignoring.");
