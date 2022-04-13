@@ -30,27 +30,34 @@
 
 namespace tritonai {
 namespace gkc {
+
+  /**
+   * @brief Construct a new Controller:: Controller object
+   * 
+   */
 Controller::Controller()
     : GkcStateMachine(), GkcPacketSubscriber(),
       Watchable(DEFAULT_MCU_HEARTBEAT_INTERVAL_MS,
                 DEFAULT_MCU_HEARTBEAT_LOST_TOLERANCE_MS),
       comm_(this), actuation_(), sensor_(),
       pc_hb_watcher_(DEFAULT_PC_HEARTBEAT_INTERVAL_MS,
-                     DEFAULT_PC_HEARTBEAT_LOST_TOLERANCE_MS),
+                     DEFAULT_PC_HEARTBEAT_LOST_TOLERANCE_MS),         //Define the parameters of the harrbeat watchdog
       ctl_cmd_watcher_(DEFAULT_CTL_CMD_INTERVAL_MS,
-                       DEFAULT_CTL_CMD_LOST_TOLERANCE_MS),
+                       DEFAULT_CTL_CMD_LOST_TOLERANCE_MS),            //Define the oarameters of the controll commands watchdog
       watchdog_(DEFAULT_WD_INTERVAL_MS, DEFAULT_WD_MAX_INACTIVITY_MS,
                 DEFAULT_WD_INTERVAL_MS) {
   std::cout << "Initializing Controller class" << std::endl;
+  //Define the functions that are called when the wachdog is triggered.
   attach(callback(this, &Controller::watchdog_callback));
   pc_hb_watcher_.attach(callback(this, &Controller::watchdog_callback));
   ctl_cmd_watcher_.attach(callback(this, &Controller::watchdog_callback));
+  //Do other things necesary for the watchdog
   Watchable::activate();
-
   watchdog_.add_to_watchlist(this);
   watchdog_.add_to_watchlist(&pc_hb_watcher_);
   watchdog_.add_to_watchlist(&ctl_cmd_watcher_);
 
+  //Register the actuators as a sesor provider. The actuator class has sensors and we register as one of the -----------------------
   sensor_.register_provider(&actuation_);
 
   std::cout << "Controller class initialized" << std::endl;

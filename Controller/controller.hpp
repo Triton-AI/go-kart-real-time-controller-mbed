@@ -9,6 +9,8 @@
  *
  */
 
+//This file is the header file for the class Controller. It doesn't define any function, it only declares what the class Controller has. It doesnt define any function/method, it only states they exist.
+
 #ifndef CONTROLLER_HPP_
 #define CONTROLLER_HPP_
 
@@ -28,13 +30,18 @@
 
 namespace tritonai {
 namespace gkc {
-class Controller : public GkcStateMachine,
-                   public GkcPacketSubscriber,
-                   public Watchable {
+  /*
+  This is the declaration of Controller. It inheritates from GkcStateMachine, GkcPacketSubscriber and Watchable.
+  That means Controller will have evrything those classes have. We have all the functions/methods those classes have but we also 'promise' to define the behaviour of some functions. Those functions are the ones declared as virtual on the original class.
+  */
+class Controller : public GkcStateMachine,      //If has all the tools for the state machine. More info about it on https://github.com/Triton-AI/go-kart-real-time-controller-mbed/blob/master/Design/state_machine.md
+                   public GkcPacketSubscriber,  //It has to do with the communication library.
+                   public Watchable  {          //for the watchdog
 public:
   Controller();
 
-  // GkcPacketSubscriber API
+  // This functions that we 'promise' to define for the GkcPacketSubscriber API
+  // Whenever a packet is read one of these functions is ejecuted
   void packet_callback(const Handshake1GkcPacket &packet);
   void packet_callback(const Handshake2GkcPacket &packet);
   void packet_callback(const GetFirmwareVersionGkcPacket &packet);
@@ -52,23 +59,33 @@ public:
 protected:
   CommManager comm_;
   ActuationController actuation_;
+  //This class will take care of reading the sensors (besides the sensors needed for the acutators)
   SensorReader sensor_;
+  //It has the configuration parameters. It has some default values, and it is overwritten if we receive a configuration packet
   ConfigGkcPacket::Configurables configs_;
+  //Watchdog fot the hartbeat. IT 'watched' the harbeat packets. On the communication protocol there is one type of packet which only porpuse is only checking comm is working. This checks this type of packet.
   Watchable pc_hb_watcher_;
+  //Wachdog for the controll packets. Checks if we stop reveiving istructions on how to move from the main comouter.
   Watchable ctl_cmd_watcher_;
+  //?
   tritonai::gkc::Watchdog watchdog_;
 
+  //?
   Thread initialize_thread;
+  //This thread sends hearbeat packets to the main computer
   Thread heartbeat_thread;
+  void heartbeat_thread_callback();
+  //This thread sends sensor packets to the main computer
   Thread sensor_poll_thread;
+  void sensor_poll_thread_callback();
 
   void watchdog_callback();
   void initialize_thread_callback();
   void send_log(const LogPacket::Severity &severity, const std::string &what);
-  void heartbeat_thread_callback();
-  void sensor_poll_thread_callback();
+ 
 
-  // GkcStateMachine API
+  // This functions that we 'promise' to define for the GkcStateMachine API
+  // Whenever the state machine changes state these functions are called.
   StateTransitionResult on_initialize(const GkcLifecycle &last_state);
   StateTransitionResult on_deactivate(const GkcLifecycle &last_state);
   StateTransitionResult on_activate(const GkcLifecycle &last_state);
