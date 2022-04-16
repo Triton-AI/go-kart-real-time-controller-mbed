@@ -397,14 +397,14 @@ void Controller::sensor_poll_thread_callback() {
 }
 
 /**
- * @brief This function is cakked whenever the state machine goes to the Initialize state.
+ * @brief This function is called whenever the state machine goes to the Initialize state.
  * This function is one of the functions we 'promised' to implement when we inherited from GkcStateMachine.
  * More information about the state machine on https://github.com/Triton-AI/go-kart-real-time-controller-mbed/blob/master/Design/state_machine.md
  * 
  * It activates the harbeat watchdog, starts the thread that sends harbeat packets to the main computer, and the thread that reads the sensors.
  * It starths the function GkcStateMachine::initialize()
  * 
- * @param last_state  The preious state
+ * @param last_state  The previous state
  * @return StateTransitionResult
  */
 StateTransitionResult
@@ -419,6 +419,18 @@ Controller::on_initialize(const GkcLifecycle &last_state) {
   return StateTransitionResult::SUCCESS;
 }
 
+
+/**
+ * @brief This function is called whenever the state machine goes to the Actuation paused (deactivate) state.
+ * This function is one of the functions we 'promised' to implement when we inherited from GkcStateMachine.
+ * More information about the state machine on https://github.com/Triton-AI/go-kart-real-time-controller-mbed/blob/master/Design/state_machine.md
+ * 
+ * As specified on the state machine diagram on the link it deactivates the controll commands wachdog, because we will stop receiving that type of commands
+ * TODO: disallow actuation
+ * 
+ * @param last_state  The previous state
+ * @return StateTransitionResult
+ */
 StateTransitionResult
 Controller::on_deactivate(const GkcLifecycle &last_state) {
   ctl_cmd_watcher_.deactivate();
@@ -426,12 +438,33 @@ Controller::on_deactivate(const GkcLifecycle &last_state) {
   return StateTransitionResult::SUCCESS;
 }
 
+/**
+ * @brief This function is called whenever the state machine goes to the Actuation Active (activate) state.
+ * This function is one of the functions we 'promised' to implement when we inherited from GkcStateMachine.
+ * More information about the state machine on https://github.com/Triton-AI/go-kart-real-time-controller-mbed/blob/master/Design/state_machine.md
+ * 
+ * As specified on the state machine diagram on the link it arms the controll commands wachdog, because we will start receiving that type of commands
+ * TODO: allow actuation
+ * 
+ * @param last_state  The previous state
+ * @return StateTransitionResult
+ */
 StateTransitionResult Controller::on_activate(const GkcLifecycle &last_state) {
   ctl_cmd_watcher_.activate();
   // TODO(haoru): allow actuation
   return StateTransitionResult::SUCCESS;
 }
 
+/**
+ * @brief This function is called whenever the state machine goes from Actuation paused to Emergency Stop through a shutdown command from the computer.
+ * This function is one of the functions we 'promised' to implement when we inherited from GkcStateMachine.
+ * More information about the state machine on https://github.com/Triton-AI/go-kart-real-time-controller-mbed/blob/master/Design/state_machine.md
+ * 
+ * It deactiaves the watchdogs
+ * 
+ * @param last_state  The previous state
+ * @return StateTransitionResult
+ */
 StateTransitionResult Controller::on_shutdown(const GkcLifecycle &last_state) {
   ctl_cmd_watcher_.deactivate();
   // TODO(haoru): disallow actuation
@@ -439,12 +472,33 @@ StateTransitionResult Controller::on_shutdown(const GkcLifecycle &last_state) {
   return StateTransitionResult::SUCCESS;
 }
 
+/**
+  * @brief This function is called whenever the state machine goes to the Emergency stop state.
+ * This function is one of the functions we 'promised' to implement when we inherited from GkcStateMachine.
+ * More information about the state machine on https://github.com/Triton-AI/go-kart-real-time-controller-mbed/blob/master/Design/state_machine.md
+ * 
+ * We still have to implement the emergency stop protocol
+ * TODO: implement what to do on the mergency stop
+ * 
+ * @param last_state  The previous state
+ * @return StateTransitionResult
+ */
 StateTransitionResult
 Controller::on_emergency_stop(const GkcLifecycle &last_state) {
   // TODO
   return StateTransitionResult::SUCCESS;
 }
 
+/**
+ * @brief This function is called whenever the state machine goes from emergency stop to unitialized through a reinitialize command from the computer.
+ * This function is one of the functions we 'promised' to implement when we inherited from GkcStateMachine.
+ * More information about the state machine on https://github.com/Triton-AI/go-kart-real-time-controller-mbed/blob/master/Design/state_machine.md
+ * 
+ * TODO: implement what to do
+ * 
+ * @param last_state  The previous state
+ * @return StateTransitionResult
+ */
 StateTransitionResult
 Controller::on_reinitialize(const GkcLifecycle &last_state) {
   // TODO
