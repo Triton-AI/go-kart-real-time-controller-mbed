@@ -16,21 +16,25 @@
 
 #include "mbed.h"
 
+#include "sensor_reader.hpp"
 #include "tai_gokart_packet/gkc_packet_factory.hpp"
 #include "tai_gokart_packet/gkc_packet_utils.hpp"
 #include "tai_gokart_packet/gkc_packets.hpp"
 
+#include "actuation_controller.hpp"
 #include "comm.hpp"
+#include "logger.hpp"
 #include "state_machine.hpp"
 #include "watchable.hpp"
 #include "watchdog.hpp"
-#include "actuation_controller.hpp"
 
 namespace tritonai {
 namespace gkc {
 class Controller : public GkcStateMachine,
                    public GkcPacketSubscriber,
-                   public Watchable {
+                   public Watchable,
+                   public ISensorProvider,
+                   public ILogger {
 public:
   Controller();
 
@@ -49,6 +53,12 @@ public:
   void packet_callback(const Shutdown2GkcPacket &packet);
   void packet_callback(const LogPacket &packet);
 
+  // ISensorProvider API
+  virtual bool is_ready();
+  virtual void populate_reading(SensorGkcPacket &pkt);
+
+  void send_log(const LogPacket::Severity &severity, const std::string &what);
+
 protected:
   CommManager comm_;
   ActuationController actuation_;
@@ -62,11 +72,13 @@ protected:
   Thread heartbeat_thread;
   Thread sensor_poll_thread;
 
+  InterruptIn estop_interrupt;
+
   void watchdog_callback();
   void initialize_thread_callback();
-  void send_log(const LogPacket::Severity &severity, const std::string &what);
   void heartbeat_thread_callback();
   void sensor_poll_thread_callback();
+  void estop_interrupt_callback();
 
   // GkcStateMachine API
   StateTransitionResult on_initialize(const GkcLifecycle &last_state);
@@ -75,8 +87,6 @@ protected:
   StateTransitionResult on_shutdown(const GkcLifecycle &last_state);
   StateTransitionResult on_emergency_stop(const GkcLifecycle &last_state);
   StateTransitionResult on_reinitialize(const GkcLifecycle &last_state);
-
-  // Data
 };
 } // namespace gkc
 } // namespace tritonai

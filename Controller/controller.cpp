@@ -19,6 +19,7 @@
 #include "gkc_packet_utils.hpp"
 #include "gkc_packets.hpp"
 
+#include "state_machine.hpp"
 #include "tai_gokart_packet/version.hpp"
 
 #include "config.hpp"
@@ -34,13 +35,14 @@ Controller::Controller()
     : GkcStateMachine(), GkcPacketSubscriber(),
       Watchable(DEFAULT_MCU_HEARTBEAT_INTERVAL_MS,
                 DEFAULT_MCU_HEARTBEAT_LOST_TOLERANCE_MS),
-      comm_(this), actuation_(), sensor_(),
+      ISensorProvider(), comm_(this), actuation_(this), sensor_(), ILogger(),
       pc_hb_watcher_(DEFAULT_PC_HEARTBEAT_INTERVAL_MS,
                      DEFAULT_PC_HEARTBEAT_LOST_TOLERANCE_MS),
       ctl_cmd_watcher_(DEFAULT_CTL_CMD_INTERVAL_MS,
                        DEFAULT_CTL_CMD_LOST_TOLERANCE_MS),
       watchdog_(DEFAULT_WD_INTERVAL_MS, DEFAULT_WD_MAX_INACTIVITY_MS,
-                DEFAULT_WD_INTERVAL_MS) {
+                DEFAULT_WD_INTERVAL_MS),
+      estop_interrupt(ESTOP_PIN) {
   std::cout << "Initializing Controller class" << std::endl;
   attach(callback(this, &Controller::watchdog_callback));
   pc_hb_watcher_.attach(callback(this, &Controller::watchdog_callback));
@@ -52,6 +54,10 @@ Controller::Controller()
   watchdog_.add_to_watchlist(&ctl_cmd_watcher_);
 
   sensor_.register_provider(&actuation_);
+  // sensor_.register_provider(this);
+
+  // estop_interrupt.rise(callback(this,
+  // &Controller::estop_interrupt_callback));
 
   std::cout << "Controller class initialized" << std::endl;
 }
@@ -196,6 +202,12 @@ void Controller::packet_callback(const LogPacket &packet) {
            "Log packet received which should not be sent to MCU. Ignoring.");
 }
 
+bool Controller::is_ready() { return true; }
+
+void Controller::populate_reading(SensorGkcPacket &pkt) {
+  // pkt.values.fault_warning = static_cast<bool>(estop_interrupt.read());
+}
+
 void Controller::initialize_thread_callback() { initialize(); }
 
 void Controller::send_log(const LogPacket::Severity &severity,
@@ -241,9 +253,19 @@ void Controller::sensor_poll_thread_callback() {
   }
 }
 
+void Controller::estop_interrupt_callback() {
+  send_log(LogPacket::Severity::WARNING, "[ESTOP TRIGGERED!!!]");
+  emergency_stop();
+}
+
 StateTransitionResult
 Controller::on_initialize(const GkcLifecycle &last_state) {
   std::cout << "Start initialization" << std::endl;
+  // if (estop_interrupt.read()) {
+  //  send_log(LogPacket::Severity::ERROR,
+  //           "ESTOP is still on. Initialization failed.");
+  //  return StateTransitionResult::FAILURE;
+  // }
   pc_hb_watcher_.activate();
   heartbeat_thread.start(
       callback(this, &Controller::heartbeat_thread_callback));

@@ -29,8 +29,8 @@
 #define BAUD_RATE 115200
 #define UART_RX_PIN PD_2
 #define UART_TX_PIN PC_12
-//#define UART_RX_PIN PA_11
-//#define UART_TX_PIN PA_12
+//#define UART_RX_PIN PE_7
+//#define UART_TX_PIN PE_8
 
 // Generic comm settings
 #define RECV_BUFFER_SIZE 32
@@ -101,6 +101,6 @@
 // *****
 // ESTOP
 // *****
-#define ESTOP_PIN PD_8
+#define ESTOP_PIN PB_10
 
 #endif // CONFIG_HPP_
