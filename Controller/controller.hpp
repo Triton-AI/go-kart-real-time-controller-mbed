@@ -36,7 +36,8 @@ namespace gkc {
   */
 class Controller : public GkcStateMachine,      //If has all the tools for the state machine. More info about it on https://github.com/Triton-AI/go-kart-real-time-controller-mbed/blob/master/Design/state_machine.md
                    public GkcPacketSubscriber,  //It has to do with the communication library.
-                   public Watchable  {          //for the watchdog
+                   public Watchable,            //for the watchdog
+                   public ILogger{          
 public:
   Controller();
 
