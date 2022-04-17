@@ -103,7 +103,7 @@ ActuationController::ActuationController(ILogger *logger)
 }
 
 void ActuationController::throttle_thread_impl() {
-  ThisThread::sleep_for(std::chrono::milliseconds(1000));
+  /*ThisThread::sleep_for(std::chrono::milliseconds(1000));
   throttle_pin.period(0.0001f);
   float *cmd;
 
@@ -112,7 +112,28 @@ void ActuationController::throttle_thread_impl() {
     current_throttle_cmd = clamp<float>(0.0, 1.0, *cmd);
     delete cmd;
     throttle_pin.write(non_linear_map(current_throttle_cmd));
+  }*/
+  float *cmd;
+  static unsigned char message[4];// = {0x00, 0x00, 0x00, 0x00};
+#define RPM_EXTENDED_ID 0x03
+  static constexpr uint32_t rpm_id =
+        (static_cast<uint32_t>(RPM_EXTENDED_ID) << sizeof(uint8_t) * 8) |
+        static_cast<uint32_t>(VESC_THROTTLE_ID);
+  int rpm;
+  while(1)
+  {
+    throttle_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
+    *cmd = map_range<float, float>(*cmd, 0, 1.0, 0, 1);
+    rpm = *cmd * 926.96 * 1000;
+    //std::cout << "0x00000311 " << rpm << std::endl;
+    //logger->send_log(LogPacket::Severity::WARNING, "a");
+    message[3] = rpm;
+    message[2] = rpm >> 8;
+    message[1] = rpm >> 16;
+    message[0] = rpm >> 24;
+    CAN_THROTTLE.write(CANMessage(0x00000311, message, 4, CANData, CANExtended)); //(id, &buffer, len)
   }
+
 }
 
 void ActuationController::steering_pid_thread_impl() {
@@ -123,10 +144,10 @@ void ActuationController::steering_pid_thread_impl() {
 #define CURRENT_EXTENDED_ID 0x01
   static constexpr uint32_t rpm_id =
       (static_cast<uint32_t>(RPM_EXTENDED_ID) << sizeof(uint8_t) * 8) |
-      static_cast<uint32_t>(VESC_ID);
+      static_cast<uint32_t>(VESC_STEERING_ID);
   static constexpr uint32_t current_id =
       (static_cast<uint32_t>(CURRENT_EXTENDED_ID) << sizeof(uint8_t) * 8) |
-      static_cast<uint32_t>(VESC_ID);
+      static_cast<uint32_t>(VESC_STEERING_ID);
 
   while (!ThisThread::flags_get()) {
     sensors.steering_output = static_cast<int32_t>(steering_pid.update(
