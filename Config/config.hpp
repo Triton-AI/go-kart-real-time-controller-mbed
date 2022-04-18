@@ -28,11 +28,11 @@
 // UART-specific settings
 #define BAUD_RATE 115200
 //For the rs232 connector
-//#define UART_RX_PIN PD_2
-//#define UART_TX_PIN PC_12
+#define UART_RX_PIN PD_2
+#define UART_TX_PIN PC_12
 //For the radio
-#define UART_RX_PIN PE_7
-#define UART_TX_PIN PE_8
+//#define UART_RX_PIN PE_7
+//#define UART_TX_PIN PE_8
 
 // Generic comm settings
 #define RECV_BUFFER_SIZE 32
