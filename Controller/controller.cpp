@@ -40,7 +40,7 @@ Controller::Controller()
     : GkcStateMachine(), GkcPacketSubscriber(),
       Watchable(DEFAULT_MCU_HEARTBEAT_INTERVAL_MS,
                 DEFAULT_MCU_HEARTBEAT_LOST_TOLERANCE_MS),
-      comm_(this), actuation_(), sensor_(),
+      comm_(this), actuation_(this), sensor_(),
       pc_hb_watcher_(DEFAULT_PC_HEARTBEAT_INTERVAL_MS,
                      DEFAULT_PC_HEARTBEAT_LOST_TOLERANCE_MS),         //Define the parameters of the harrbeat watchdog
       ctl_cmd_watcher_(DEFAULT_CTL_CMD_INTERVAL_MS,
@@ -67,7 +67,7 @@ Controller::Controller()
 /**
  * @brief This function will be called when one of the wachdogs is triggered
  * It is configured as the wachdog callback function on Controller::Controller()
- * If we are not on the Unizialized state or Emergency state it sends the state machine to emergecy_stop state.
+ * If we are not on the Unizialized state or Emergency state its the state machine to emergecy_stop state.
  * Then, to change what the kart does when the wachdog is triggered (there is an emergecy stop) you should change Controller::on_emergency_stop()
  * 
  */
@@ -233,11 +233,11 @@ void Controller::packet_callback(const StateTransitionGkcPacket &packet) {
   case Inactive:
     GkcStateMachine::deactivate();
     break;
-  case Shutdown:
+  /*case Shutdown:
     send_log(LogPacket::Severity::WARNING,
              "Shutdown state can only be entered upon reciving shutdown "
              "request. Ignoring.");
-    break;
+    break;*/
   case Emergency:
     GkcStateMachine::emergency_stop();
     break;
@@ -338,6 +338,7 @@ void Controller::packet_callback(const LogPacket &packet) {
 
 /**
  * @brief It uses the CommManager (comm_) to send the log
+ We 'promise' to implement this function because we inherate from ILogger
  * 
  * @param severity severity of the log (eg. LogPacket::Severity::WARNING)
  * @param what The text on the log

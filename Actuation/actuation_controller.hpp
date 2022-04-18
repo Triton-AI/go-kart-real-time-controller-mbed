@@ -1,7 +1,7 @@
 /**
  * @file actuation_controller.hpp
  * @author Haoru Xue (haoru.xue@autoware.org)
- * @brief
+ * @brief 
  * @version 0.1
  * @date 2022-04-02
  *
@@ -33,6 +33,15 @@ struct ActuationSensors {
   int32_t steering_output = 0;
 };
 
+/**
+ * @brief 
+ * This class takes care of the actuators. The interface to controll them is with set_throttle_cmd(), set_steering_cmd(), set_brake_cmd()
+ * 
+ * It also provides data from sensors. To do so it inheritas from ISensorProvider. We have to implement the function populate_reading() that populates the SensorGkcPacket with the sensor information. The Thread sensor_poll_thread and SensorReader sensor_ from the Controller will take care of sending the sensor data to the main computer.
+ * 
+ * The inner working is the following. When we run some of the set_throttle_cmd(), set_steering_cmd(), set_brake_cmd() we add the new value to a queue. One for each actuator. TODO:
+ * 
+ */
 class ActuationController : public Watchable, public ISensorProvider {
 public:
   explicit ActuationController(ILogger *logger);
