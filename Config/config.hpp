@@ -94,7 +94,7 @@
 #define STEER_D 1.0
 #define STEER_DEADBAND_DEG 0.5
 #define PID_INTERVAL_MS 10
-#define VESC_STEERING_ID 3
+#define VESC_STEERING_ID 2
 
 // *******
 // Sensors
