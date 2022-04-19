@@ -28,11 +28,11 @@
 // UART-specific settings
 #define BAUD_RATE 115200
 //For the rs232 connector
-//#define UART_RX_PIN PD_2
-//#define UART_TX_PIN PC_12
+#define UART_RX_PIN PD_2
+#define UART_TX_PIN PC_12
 //For the radio
-#define UART_RX_PIN PE_7
-#define UART_TX_PIN PE_8
+//#define UART_RX_PIN PE_7
+//#define UART_TX_PIN PE_8
 
 // Generic comm settings
 #define RECV_BUFFER_SIZE 32
@@ -69,7 +69,7 @@
 // Actuation
 // *********
 // Throttle
-#define THROTTLE_PWM_PIN PA_6
+#define THROTTLE_PWM_PIN PA_5
 #define CAN_THROTTLE CAN_1
 #define VESC_THROTTLE_ID 17
 // Braking
@@ -100,7 +100,7 @@
 // Sensors
 // *******
 // PWM steering encoder
-#define STEER_ENCODER_PIN A0
+#define STEER_ENCODER_PIN PC_7
 
 // *****
 // ESTOP
