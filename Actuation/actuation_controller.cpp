@@ -216,7 +216,7 @@ void ActuationController::sensor_poll_thread_impl() {
     sensors.steering_rad = steer_encoder.dutycycle();
     sensors.steering_rad =
         map_range<float, float>(sensors.steering_rad, 0.0, 1.0, 0.0, 2 * M_PI);
-        sensors.steering_rad = fmod(sensors.steering_rad + 2.12, 6.24);
+        sensors.steering_rad = fmod(sensors.steering_rad + 0.6, 6.24);
         std::cout << sensors.steering_rad << endl;
 
     ThisThread::sleep_for(poll_interval);
