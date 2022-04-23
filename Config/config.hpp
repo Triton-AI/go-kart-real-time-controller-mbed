@@ -70,8 +70,8 @@
 // *********
 // Throttle
 #define THROTTLE_PWM_PIN PA_5
-#define CAN_THROTTLE CAN_1
-#define VESC_THROTTLE_ID 17
+#define CAN_THROTTLE CAN_2
+#define VESC_THROTTLE_ID 1
 // Braking
 #define CAN1_RX PD_0
 #define CAN1_TX PD_1
@@ -84,9 +84,9 @@
 #define CAN2_TX PB_6
 #define CAN2_BAUDRATE 500000
 #define CAN_BRAKE CAN_1 // Which CAN bus to use for brake [CAN_1 | CAN_2]
-#define MAX_STEER_DEG 270.0
-#define MIN_STEER_DEG 90.0
-#define NEUTRAL_STEER_DEG 180.0
+#define MAX_STEER_DEG 221
+#define MIN_STEER_DEG 118
+#define NEUTRAL_STEER_DEG 180
 #define MAX_STEER_SPEED_ERPM 1000.0
 #define MAX_CURRENT_MA 3000.0
 #define STEER_P 20.0
