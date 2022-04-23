@@ -256,10 +256,10 @@ void Controller::packet_callback(const StateTransitionGkcPacket &packet) {
  */
 void Controller::packet_callback(const ControlGkcPacket &packet) {
   // TODO
-  // std::stringstream s;
-  // s << "[Control] thr: " << packet.throttle << ", brk: " << packet.brake
-  //  << ", str: " << packet.steering;
-  // send_log(LogPacket::Severity::INFO, s.str());
+   //std::stringstream s;
+   //s << "[Control] thr: " << packet.throttle << ", brk: " << packet.brake 
+   // << ", str: " << packet.steering;
+   //send_log(LogPacket::Severity::INFO, s.str());
   if (get_state() == GkcLifecycle::Active) {
     //it does new float(.) because the functions receive a float* and not a float. That way we create a float* that has the value of what we want.
     actuation_.set_throttle_cmd(new float(packet.throttle));
