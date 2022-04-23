@@ -131,7 +131,7 @@ void ActuationController::throttle_thread_impl() {
     message[2] = rpm >> 8;
     message[1] = rpm >> 16;
     message[0] = rpm >> 24;
-    CAN_THROTTLE.write(CANMessage(0x00000311, message, 4, CANData, CANExtended)); //(id, &buffer, len)
+    CAN_THROTTLE.write(CANMessage(0x00000301, message, 4, CANData, CANExtended)); //(id, &buffer, len)
   }
 
 }
@@ -148,7 +148,7 @@ void ActuationController::steering_pid_thread_impl() {
   static constexpr uint32_t current_id =
       (static_cast<uint32_t>(CURRENT_EXTENDED_ID) << sizeof(uint8_t) * 8) |
       static_cast<uint32_t>(VESC_STEERING_ID);
-
+    int count = 0;
   while (!ThisThread::flags_get()) {
     sensors.steering_output = static_cast<int32_t>(steering_pid.update(
         current_steering_cmd - sensors.steering_rad, PID_INTERVAL_MS / 1000.0));
@@ -156,11 +156,15 @@ void ActuationController::steering_pid_thread_impl() {
         deg_to_rad<float, float>(STEER_DEADBAND_DEG)) {
       steering_pid.reset_integral_error(0.0);
       sensors.steering_output = 0;
+      cout << "a";
     }
     auto data = sensors.steering_output;
     bool write_success = CAN_STEER.write(CANMessage(
         rpm_id, reinterpret_cast<uint8_t *>(&data), 4, CANData, CANExtended));
+        //std::cout << write_success << "\t" << data << "\t" << count << endl;
+        count++;
     ThisThread::sleep_for(pid_interval);
+    //ThisThread::sleep_for(100ms);
   }
 }
 
@@ -212,6 +216,9 @@ void ActuationController::sensor_poll_thread_impl() {
     sensors.steering_rad = steer_encoder.dutycycle();
     sensors.steering_rad =
         map_range<float, float>(sensors.steering_rad, 0.0, 1.0, 0.0, 2 * M_PI);
+        sensors.steering_rad = fmod(sensors.steering_rad + 2.12, 6.24);
+        std::cout << sensors.steering_rad << endl;
+
     ThisThread::sleep_for(poll_interval);
   }
 }
