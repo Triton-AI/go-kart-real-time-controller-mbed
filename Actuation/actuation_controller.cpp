@@ -156,7 +156,7 @@ void ActuationController::steering_pid_thread_impl() {
         deg_to_rad<float, float>(STEER_DEADBAND_DEG)) {
       steering_pid.reset_integral_error(0.0);
       sensors.steering_output = 0; // 155-160 if error is less than maximum allowable error, make steering output nothing, ie steering stops
-      cout << "a";
+      cout << "a"; //this is an error right?? this is not in the main, there is error on the operation, and cout is not a variable anywhere
     }
     auto data = sensors.steering_output;
     bool write_success = CAN_STEER.write(CANMessage(
