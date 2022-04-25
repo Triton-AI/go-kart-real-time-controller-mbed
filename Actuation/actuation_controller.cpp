@@ -153,12 +153,14 @@ void ActuationController::steering_pid_thread_impl() {
     sensors.steering_output = static_cast<int32_t>(steering_pid.update(
         current_steering_cmd - sensors.steering_rad, PID_INTERVAL_MS / 1000.0)); //153-154 changes the steering output value based on PID controls
     if (abs(sensors.steering_rad - current_steering_cmd) <
-        deg_to_rad<float, float>(STEER_DEADBAND_DEG)) {
+        deg_to_rad<float, float>(STEER_DEADBAND_DEG)) 
+    {
       steering_pid.reset_integral_error(0.0);
       sensors.steering_output = 0; // 155-160 if error is less than maximum allowable error, make steering output nothing, ie steering stops
-      cout << "a"; //this is an error right?? this is not in the main, there is error on the operation, and cout is not a variable anywhere
     }
     auto data = sensors.steering_output;
+    if (data == 1)
+        data = 0;
     bool write_success = CAN_STEER.write(CANMessage(
         rpm_id, reinterpret_cast<uint8_t *>(&data), 4, CANData, CANExtended)); // writes the datea to the VESC //only using rpm, keyboard was using current control and did not turn off
         //std::cout << write_success << "\t" << data << "\t" << count << endl;
