@@ -137,36 +137,33 @@ void ActuationController::throttle_thread_impl() {
 }
 
 void ActuationController::steering_pid_thread_impl() {
-  ThisThread::sleep_for(std::chrono::milliseconds(1000)); //makes the thread sleep for 1000 miliseconds
-  static constexpr std::chrono::milliseconds pid_interval(   
-      static_cast<uint32_t>(PID_INTERVAL_MS));    //141-142 make a variable called pid_interval
-#define RPM_EXTENDED_ID 0x03 //ID for RPM control on VESC
-#define CURRENT_EXTENDED_ID 0x01 //ID for current control on VESC
+  ThisThread::sleep_for(std::chrono::milliseconds(1000));
+  static constexpr std::chrono::milliseconds pid_interval(
+      static_cast<uint32_t>(PID_INTERVAL_MS));
+#define RPM_EXTENDED_ID 0x03
+#define CURRENT_EXTENDED_ID 0x01
   static constexpr uint32_t rpm_id =
       (static_cast<uint32_t>(RPM_EXTENDED_ID) << sizeof(uint8_t) * 8) |
-      static_cast<uint32_t>(VESC_STEERING_ID); //145-147 Makes the full ID that will be sent via CAN to VESC, this one is for RPM
+      static_cast<uint32_t>(VESC_STEERING_ID);
   static constexpr uint32_t current_id =
       (static_cast<uint32_t>(CURRENT_EXTENDED_ID) << sizeof(uint8_t) * 8) |
-      static_cast<uint32_t>(VESC_STEERING_ID); //148-150 Makes the full ID that will be sent via CAN to VESC, this one is for current
-    int count = 0;
+      static_cast<uint32_t>(VESC_STEERING_ID);
+
   while (!ThisThread::flags_get()) {
     sensors.steering_output = static_cast<int32_t>(steering_pid.update(
-        current_steering_cmd - sensors.steering_rad, PID_INTERVAL_MS / 1000.0)); //153-154 changes the steering output value based on PID controls
+        current_steering_cmd - sensors.steering_rad, PID_INTERVAL_MS / 1000.0));
     if (abs(sensors.steering_rad - current_steering_cmd) <
-        deg_to_rad<float, float>(STEER_DEADBAND_DEG)) 
-    {
+        deg_to_rad<float, float>(STEER_DEADBAND_DEG)) {
       steering_pid.reset_integral_error(0.0);
-      sensors.steering_output = 0; // 155-160 if error is less than maximum allowable error, make steering output nothing, ie steering stops
+      sensors.steering_output = 0;
     }
     auto data = sensors.steering_output;
-    if (data == 1)
+    if (data == -1) 
         data = 0;
     bool write_success = CAN_STEER.write(CANMessage(
-        rpm_id, reinterpret_cast<uint8_t *>(&data), 4, CANData, CANExtended)); // writes the datea to the VESC //only using rpm, keyboard was using current control and did not turn off
-        //std::cout << write_success << "\t" << data << "\t" << count << endl;
-        count++;
-    ThisThread::sleep_for(pid_interval); // whole PID portion sleeps for pid_interval then restarts
-    //ThisThread::sleep_for(100ms);
+        rpm_id, reinterpret_cast<uint8_t *>(&data), 4, CANData, CANExtended));
+    std::cout << write_success << "\t" << data << endl;
+    ThisThread::sleep_for(pid_interval);
   }
 }
 
