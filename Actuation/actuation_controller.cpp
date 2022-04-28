@@ -148,21 +148,31 @@ void ActuationController::steering_pid_thread_impl() {
   static constexpr uint32_t current_id =
       (static_cast<uint32_t>(CURRENT_EXTENDED_ID) << sizeof(uint8_t) * 8) |
       static_cast<uint32_t>(VESC_STEERING_ID);
+  unsigned char message[4];
+  int last[4];
 
   while (!ThisThread::flags_get()) {
-    sensors.steering_output = static_cast<int32_t>(steering_pid.update(
-        current_steering_cmd - sensors.steering_rad, PID_INTERVAL_MS / 1000.0));
+    sensors.steering_output = static_cast<int32_t>((steering_pid.update(
+        current_steering_cmd - sensors.steering_rad, PID_INTERVAL_MS / 1000.0)) * 1000);
     if (abs(sensors.steering_rad - current_steering_cmd) <
         deg_to_rad<float, float>(STEER_DEADBAND_DEG)) {
       steering_pid.reset_integral_error(0.0);
       sensors.steering_output = 0;
     }
     auto data = sensors.steering_output;
-    if (data == -1) 
-        data = 0;
+    //it was cliking the gears because it was switching direction super fast when stopped. Solved it by doing the average of the last 4 commands
+    last[0] = last[1];
+    last[1] = last[2];
+    last[2] = last[3];
+    last[3] = data;
+    data = (last[0] + last[1] + last[2] + last[3]) / 4;
+    message[3] = data;
+    message[2] = data >> 8;
+    message[1] = data >> 16;
+    message[0] = data >> 24;
     bool write_success = CAN_STEER.write(CANMessage(
-        rpm_id, reinterpret_cast<uint8_t *>(&data), 4, CANData, CANExtended));
-    std::cout << write_success << "\t" << data << endl;
+        current_id, message, 4, CANData, CANExtended));
+    //std::cout << write_success << "\t" << data << "\t" << current_steering_cmd << "\t" << sensors.steering_rad << endl;
     ThisThread::sleep_for(pid_interval);
   }
 }
@@ -215,8 +225,8 @@ void ActuationController::sensor_poll_thread_impl() {
     sensors.steering_rad = steer_encoder.dutycycle();
     sensors.steering_rad =
         map_range<float, float>(sensors.steering_rad, 0.0, 1.0, 0.0, 2 * M_PI);
-        sensors.steering_rad = fmod(sensors.steering_rad + 0.7, 6.24);
-        std::cout << sensors.steering_rad << endl;
+        sensors.steering_rad = fmod(sensors.steering_rad + 3.65, 2 * M_PI);
+        //std::cout << sensors.steering_rad << endl;
 
     ThisThread::sleep_for(poll_interval);
   }

@@ -87,13 +87,24 @@
 #define MAX_STEER_DEG 221
 #define MIN_STEER_DEG 118
 #define NEUTRAL_STEER_DEG 180
-#define MAX_STEER_SPEED_ERPM 1000.0
+#define MAX_STEER_SPEED_ERPM 30.0
 #define MAX_CURRENT_MA 3000.0
-#define STEER_P 20.0
-#define STEER_I 0.0
-#define STEER_D 1.0
+//#define STEER_P 20.0
+//#define STEER_I 0.0
+
+//#define STEER_P 1
+//#define STEER_I 0
+//#define STEER_D 0
+//Great config for 50ms (20hz) and printing DONT PRINT TOO MUCH
+//#define STEER_P 25.0
+//#define STEER_I 1.9
+//#define STEER_D 2.4
+//Code for 10ms (100hz) NO PRINTING
+#define STEER_P 29.5
+#define STEER_I 2.2
+#define STEER_D 2.4
 #define STEER_DEADBAND_DEG 0.5
-#define PID_INTERVAL_MS 50
+#define PID_INTERVAL_MS 10
 #define VESC_STEERING_ID 2
 
 // *******
