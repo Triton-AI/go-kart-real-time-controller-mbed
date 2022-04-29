@@ -150,6 +150,7 @@ void ActuationController::steering_pid_thread_impl() {
       static_cast<uint32_t>(VESC_STEERING_ID);
   unsigned char message[4];
   int last[4];
+  steering_pid.reset_integral_error(0.0);
 
   while (!ThisThread::flags_get()) {
     sensors.steering_output = static_cast<int32_t>((steering_pid.update(

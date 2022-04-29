@@ -37,7 +37,7 @@ float PidController::update(float new_error, float actual_dt) {
 
   integral_error_ += error_ * actual_dt;
   integral_error_ =
-      clamp<float>(integral_error_, coefficients_.min_i, coefficients_.max_i);
+      clamp<float>(coefficients_.min_i, coefficients_.max_i, integral_error_);
 
   // Calculate dt error.
 

@@ -97,11 +97,11 @@
 //#define STEER_D 0
 //Great config for 50ms (20hz) and printing DONT PRINT TOO MUCH
 //#define STEER_P 25.0
-//#define STEER_I 1.9
+//#define STEER_I 0
 //#define STEER_D 2.4
 //Code for 10ms (100hz) NO PRINTING
 #define STEER_P 29.5
-#define STEER_I 2.2
+#define STEER_I 0//2.2
 #define STEER_D 2.4
 #define STEER_DEADBAND_DEG 0.5
 #define PID_INTERVAL_MS 10
