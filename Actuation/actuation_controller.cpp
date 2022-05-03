@@ -123,15 +123,13 @@ void ActuationController::throttle_thread_impl() {
   while(1)
   {
     throttle_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
-    *cmd = map_range<float, float>(*cmd, 0, 1.0, 0, 1);
-    rpm = *cmd * 926.96 * 1000;
-    //std::cout << "0x00000311 " << rpm << std::endl;
-    //logger->send_log(LogPacket::Severity::WARNING, "a");
+    //*cmd = map_range<float, float>(*cmd, 0, 1.0, 0, 1);
+    rpm = *cmd * 926.96 * 1000 / 200;
     message[3] = rpm;
     message[2] = rpm >> 8;
     message[1] = rpm >> 16;
     message[0] = rpm >> 24;
-    CAN_THROTTLE.write(CANMessage(0x00000301, message, 4, CANData, CANExtended)); //(id, &buffer, len)
+    CAN_THROTTLE.write(CANMessage(rpm_id, message, 4, CANData, CANExtended)); //(id, &buffer, len)
   }
 
 }
@@ -226,7 +224,7 @@ void ActuationController::sensor_poll_thread_impl() {
     sensors.steering_rad = steer_encoder.dutycycle();
     sensors.steering_rad =
         map_range<float, float>(sensors.steering_rad, 0.0, 1.0, 0.0, 2 * M_PI);
-        sensors.steering_rad = fmod(sensors.steering_rad + 3.65, 2 * M_PI);
+        sensors.steering_rad = fmod(sensors.steering_rad + STEERING_CAL_OFF, 2 * M_PI);
         //std::cout << sensors.steering_rad << endl;
 
     ThisThread::sleep_for(poll_interval);

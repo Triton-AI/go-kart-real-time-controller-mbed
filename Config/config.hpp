@@ -70,23 +70,24 @@
 // *********
 // Throttle
 #define THROTTLE_PWM_PIN PA_5
-#define CAN_THROTTLE CAN_2
-#define VESC_THROTTLE_ID 1
+#define CAN_THROTTLE CAN_1
+#define VESC_THROTTLE_ID 5
 // Braking
 #define CAN1_RX PD_0
 #define CAN1_TX PD_1
-#define CAN1_BAUDRATE 500000
+#define CAN1_BAUDRATE 250000
 #define CAN_STEER CAN_1 // Which CAN bus to use for steering [CAN_1 | CAN_2]
 #define MAX_BRAKE_VAL 2500
 #define MIN_BRAKE_VAL 1500
 // Steering
 #define CAN2_RX PB_5
 #define CAN2_TX PB_6
-#define CAN2_BAUDRATE 500000
+#define CAN2_BAUDRATE 250000
 #define CAN_BRAKE CAN_2 // Which CAN bus to use for brake [CAN_1 | CAN_2]
-#define MAX_STEER_DEG 221
-#define MIN_STEER_DEG 118
-#define NEUTRAL_STEER_DEG 180
+#define MAX_STEER_DEG 230        //on 360 degrees
+#define MIN_STEER_DEG 130    //on 360 degrees
+#define NEUTRAL_STEER_DEG 180   //on 360 degrees
+#define STEERING_CAL_OFF -0.4      //on radians
 #define MAX_STEER_SPEED_ERPM 30.0
 #define MAX_CURRENT_MA 3000.0
 //#define STEER_P 20.0
@@ -100,11 +101,11 @@
 //#define STEER_I 0
 //#define STEER_D 2.4
 //Code for 10ms (100hz) NO PRINTING
-#define STEER_P 29.5
-#define STEER_I 0//2.2
-#define STEER_D 2.4
+#define STEER_P 29
+#define STEER_I 0.0//2.2
+#define STEER_D 2.5
 #define STEER_DEADBAND_DEG 0.5
-#define PID_INTERVAL_MS 10
+#define PID_INTERVAL_MS 5
 #define VESC_STEERING_ID 2
 
 // *******
