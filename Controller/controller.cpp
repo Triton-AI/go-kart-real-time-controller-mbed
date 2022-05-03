@@ -147,11 +147,6 @@ void Controller::packet_callback(const StateTransitionGkcPacket &packet) {
   case Inactive:
     GkcStateMachine::deactivate();
     break;
-  case Shutdown:
-    send_log(LogPacket::Severity::WARNING,
-             "Shutdown state can only be entered upon reciving shutdown "
-             "request. Ignoring.");
-    break;
   case Emergency:
     GkcStateMachine::emergency_stop();
     break;

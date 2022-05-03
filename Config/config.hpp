@@ -66,41 +66,45 @@
 // *********
 // Actuation
 // *********
-// Throttle
-#define THROTTLE_PWM_PIN PA_6
-// Braking
 #define CAN1_RX PD_0
 #define CAN1_TX PD_1
-#define CAN1_BAUDRATE 500000
-#define CAN_STEER CAN_1 // Which CAN bus to use for steering [CAN_1 | CAN_2]
-#define MAX_BRAKE_VAL 2500
-#define MIN_BRAKE_VAL 1500
-// Steering
+#define CAN1_BAUDRATE 250000
 #define CAN2_RX PB_5
 #define CAN2_TX PB_6
 #define CAN2_BAUDRATE 500000
-#define CAN_BRAKE CAN_1 // Which CAN bus to use for brake [CAN_1 | CAN_2]
+// Throttle
+// #define THROTTLE_PWM_PIN PA_6
+#define CAN_THROTTLE CAN_1
+#define MAX_THROTTLE_SPEED_ERPM 1000
+#define MAX_THROTTLE_CURRENT_MA 20000
+#define THROTTLE_VESC_ID 5
+// Braking
+#define CAN_BRAKE CAN_2 // Which CAN bus to use for steering [CAN_1 | CAN_2]
+#define MAX_BRAKE_VAL 2500
+#define MIN_BRAKE_VAL 1500
+// Steering
+#define CAN_STEER CAN_1 // Which CAN bus to use for brake [CAN_1 | CAN_2]
 #define MAX_STEER_DEG 270.0
 #define MIN_STEER_DEG 90.0
 #define NEUTRAL_STEER_DEG 180.0
-#define MAX_STEER_SPEED_ERPM 1000.0
-#define MAX_CURRENT_MA 3000.0
-#define STEER_P 20.0
+#define MAX_STEER_SPEED_ERPM 1000
+#define MAX_STEER_CURRENT_MA 3000
+#define STEER_P 10.0
 #define STEER_I 0.0
 #define STEER_D 1.0
 #define STEER_DEADBAND_DEG 0.5
 #define PID_INTERVAL_MS 10
-#define VESC_ID 3
+#define STEER_VESC_ID 2
 
 // *******
 // Sensors
 // *******
 // PWM steering encoder
-#define STEER_ENCODER_PIN A0
+#define STEER_ENCODER_PIN PB_10
 
 // *****
 // ESTOP
 // *****
-#define ESTOP_PIN PB_10
+#define ESTOP_PIN PC_7
 
 #endif // CONFIG_HPP_

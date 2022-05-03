@@ -17,7 +17,7 @@ void PidController::reset_integral_error(float integral_error) {
   integral_error_ = integral_error;
 }
 
-template <typename T> T clamp(const T &min, const T &max, const T &val) {
+template <typename T> T clamp(const T &val, const T &min, const T &max) {
   if (val > max) {
     return max;
   } else if (val < min) {

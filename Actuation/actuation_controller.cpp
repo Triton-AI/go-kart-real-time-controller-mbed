@@ -23,12 +23,22 @@
 #include <string>
 
 #define M_PI 3.14159265
+#define RPM_EXTENDED_ID 0x03
+#define CURRENT_EXTENDED_ID 0x01
+static constexpr uint32_t VESC_RPM_ID(const uint32_t &vesc_id) {
+  return (static_cast<uint32_t>(RPM_EXTENDED_ID) << sizeof(uint8_t) * 8) |
+         static_cast<uint32_t>(STEER_VESC_ID);
+}
+static constexpr uint32_t VESC_CURRENT_ID(const uint32_t &vesc_id) {
+  return (static_cast<uint32_t>(CURRENT_EXTENDED_ID) << sizeof(uint8_t) * 8) |
+         static_cast<uint32_t>(STEER_VESC_ID);
+}
 
 namespace tritonai {
 namespace gkc {
 
 template <typename T>
-constexpr T clamp(const T &min, const T &max, const T &val) {
+constexpr T clamp(const T &val, const T &min, const T &max) {
   if (val > max) {
     return max;
   } else if (val < min) {
@@ -45,7 +55,7 @@ template <typename T> constexpr T non_linear_map(const T &val) {
 template <typename S, typename D>
 constexpr D map_range(const S &source, const S &source_min, const S &source_max,
                       const D &dest_min, const D &dest_max) {
-  float source_f = clamp<S>(source_min, source_max, source);
+  float source_f = clamp<S>(source, source_min, source_max);
   source_f = (source_f - source_min) / (source_max - source_min);
   return static_cast<D>(source_f * (dest_max - dest_min) + dest_min);
 }
@@ -70,7 +80,6 @@ void ActuationController::populate_reading(SensorGkcPacket &pkt) {
   pkt.values.servo_angle_rad = static_cast<float>(sensors.steering_output);
 }
 
-PwmOut throttle_pin(THROTTLE_PWM_PIN);
 PwmIn steer_encoder(STEER_ENCODER_PIN);
 CAN CAN_1(CAN1_RX, CAN1_TX, CAN1_BAUDRATE);
 CAN CAN_2(CAN2_RX, CAN2_TX, CAN2_BAUDRATE);
@@ -103,15 +112,17 @@ ActuationController::ActuationController(ILogger *logger)
 }
 
 void ActuationController::throttle_thread_impl() {
-  ThisThread::sleep_for(std::chrono::milliseconds(1000));
-  throttle_pin.period(0.0001f);
   float *cmd;
-
   while (!ThisThread::flags_get()) {
     throttle_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
-    current_throttle_cmd = clamp<float>(0.0, 1.0, *cmd);
+    current_throttle_cmd = clamp<float>(*cmd, 0.0, 1.0);
+    const int32_t vesc_current_cmd =
+        static_cast<int32_t>(current_throttle_cmd * MAX_THROTTLE_CURRENT_MA);
     delete cmd;
-    throttle_pin.write(non_linear_map(current_throttle_cmd));
+    CAN_THROTTLE.write(
+        CANMessage(VESC_CURRENT_ID(THROTTLE_VESC_ID),
+                   reinterpret_cast<const uint8_t *>(&vesc_current_cmd),
+                   sizeof(vesc_current_cmd), CANData, CANExtended));
   }
 }
 
@@ -119,14 +130,6 @@ void ActuationController::steering_pid_thread_impl() {
   ThisThread::sleep_for(std::chrono::milliseconds(1000));
   static constexpr std::chrono::milliseconds pid_interval(
       static_cast<uint32_t>(PID_INTERVAL_MS));
-#define RPM_EXTENDED_ID 0x03
-#define CURRENT_EXTENDED_ID 0x01
-  static constexpr uint32_t rpm_id =
-      (static_cast<uint32_t>(RPM_EXTENDED_ID) << sizeof(uint8_t) * 8) |
-      static_cast<uint32_t>(VESC_ID);
-  static constexpr uint32_t current_id =
-      (static_cast<uint32_t>(CURRENT_EXTENDED_ID) << sizeof(uint8_t) * 8) |
-      static_cast<uint32_t>(VESC_ID);
 
   while (!ThisThread::flags_get()) {
     sensors.steering_output = static_cast<int32_t>(steering_pid.update(
@@ -136,9 +139,10 @@ void ActuationController::steering_pid_thread_impl() {
       steering_pid.reset_integral_error(0.0);
       sensors.steering_output = 0;
     }
-    auto data = sensors.steering_output;
-    bool write_success = CAN_STEER.write(CANMessage(
-        rpm_id, reinterpret_cast<uint8_t *>(&data), 4, CANData, CANExtended));
+    const int32_t data = sensors.steering_output;
+    CAN_STEER.write(CANMessage(VESC_RPM_ID(STEER_VESC_ID),
+                               reinterpret_cast<const uint8_t *>(&data),
+                               sizeof(data), CANData, CANExtended));
     ThisThread::sleep_for(pid_interval);
   }
 }
@@ -148,7 +152,7 @@ void ActuationController::steering_thread_impl() {
   float *cmd;
   while (!ThisThread::flags_get()) {
     steering_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
-    *cmd = clamp<float>(-1.0, 1.0, *cmd);
+    *cmd = clamp<float>(*cmd, -1.0, 1.0);
     *cmd =
         map_range<float, float>(*cmd, -1.0, 1.0, MIN_STEER_DEG, MAX_STEER_DEG);
     *cmd = deg_to_rad<float, float>(*cmd);
@@ -173,7 +177,7 @@ void ActuationController::brake_thread_impl() {
 
   while (!ThisThread::flags_get()) {
     brake_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
-    current_brake_cmd = clamp<float>(0.0, 1.0, *cmd);
+    current_brake_cmd = clamp<float>(*cmd, 0.0, 1.0);
     delete cmd;
     brake_output = map_range<float, uint16_t>(current_brake_cmd, 0.0, 1.0,
                                               MIN_BRAKE_VAL, MAX_BRAKE_VAL);
