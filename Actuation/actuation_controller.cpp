@@ -16,6 +16,7 @@
 #include "Thread.h"
 #include "config.hpp"
 #include "global_profilers.hpp"
+#include "vesc_can_helper.hpp"
 #include "watchdog.hpp"
 #include <chrono>
 #include <cmath>
@@ -23,15 +24,22 @@
 #include <string>
 
 #define M_PI 3.14159265
-#define RPM_EXTENDED_ID 0x03
-#define CURRENT_EXTENDED_ID 0x01
+#define VESC_RPM_EXTENDED_ID 0x03
+#define VESC_CURRENT_EXTENDED_ID 0x01
+#define VESC_STATUS_EXTENDED_ID 0x09
 static constexpr uint32_t VESC_RPM_ID(const uint32_t &vesc_id) {
-  return (static_cast<uint32_t>(RPM_EXTENDED_ID) << sizeof(uint8_t) * 8) |
-         static_cast<uint32_t>(STEER_VESC_ID);
+  return (static_cast<uint32_t>(VESC_RPM_EXTENDED_ID) << sizeof(uint8_t) * 8) |
+         static_cast<uint32_t>(vesc_id);
 }
 static constexpr uint32_t VESC_CURRENT_ID(const uint32_t &vesc_id) {
-  return (static_cast<uint32_t>(CURRENT_EXTENDED_ID) << sizeof(uint8_t) * 8) |
-         static_cast<uint32_t>(STEER_VESC_ID);
+  return (static_cast<uint32_t>(VESC_CURRENT_EXTENDED_ID)
+          << sizeof(uint8_t) * 8) |
+         static_cast<uint32_t>(vesc_id);
+}
+static constexpr uint32_t VESC_STATUS_ID(const uint32_t &vesc_id) {
+  return (static_cast<uint32_t>(VESC_STATUS_EXTENDED_ID)
+          << sizeof(uint8_t) * 8) |
+         static_cast<uint32_t>(vesc_id);
 }
 
 namespace tritonai {
@@ -64,11 +72,7 @@ template <typename S, typename D> constexpr D deg_to_rad(const S &deg) {
   return static_cast<D>(deg * M_PI / 180.0);
 }
 
-bool ActuationController::is_ready() {
-  //  return sensor_poll_thread.get_state() == Thread::Running ||
-  //         sensor_poll_thread.get_state() == Thread::WaitingDelay;
-  return false;
-}
+bool ActuationController::is_ready() { return true; }
 
 void ActuationController::populate_reading(SensorGkcPacket &pkt) {
   pkt.values.steering_angle_rad = sensors.steering_rad;
@@ -87,16 +91,16 @@ CAN CAN_2(CAN2_RX, CAN2_TX, CAN2_BAUDRATE);
 PidCoefficients steering_pid_coeff{STEER_P,
                                    STEER_I,
                                    STEER_D,
-                                   -MAX_STEER_SPEED_ERPM,
-                                   MAX_STEER_SPEED_ERPM,
-                                   -MAX_STEER_SPEED_ERPM,
-                                   MAX_STEER_SPEED_ERPM};
+                                   -MAX_STEER_CURRENT_MA,
+                                   MAX_STEER_CURRENT_MA,
+                                   -MAX_STEER_CURRENT_MA,
+                                   MAX_STEER_CURRENT_MA};
 
 ActuationController::ActuationController(ILogger *logger)
     : Watchable(DEFAULT_ACTUATION_INTERVAL_MS,
                 DEFAULT_ACTUATION_LOST_TOLERANCE_MS),
       ISensorProvider(),
-      current_steering_cmd(deg_to_rad<int32_t, float>(NEUTRAL_STEER_DEG)),
+      current_steering_cmd(deg_to_rad<int32_t, float>(NEUTRAL_STEER_DEG + OFFSET_STEER_DEG)),
       steering_pid("steering", steering_pid_coeff), logger(logger) {
   std::cout << "Initializing actuation" << std::endl;
   throttle_thread.start(
@@ -119,10 +123,11 @@ void ActuationController::throttle_thread_impl() {
     const int32_t vesc_current_cmd =
         static_cast<int32_t>(current_throttle_cmd * MAX_THROTTLE_CURRENT_MA);
     delete cmd;
-    CAN_THROTTLE.write(
-        CANMessage(VESC_CURRENT_ID(THROTTLE_VESC_ID),
-                   reinterpret_cast<const uint8_t *>(&vesc_current_cmd),
-                   sizeof(vesc_current_cmd), CANData, CANExtended));
+    uint8_t message[4] = {0, 0, 0, 0};
+    int32_t idx = 0;
+    buffer_append_int32(&message[0], vesc_current_cmd, &idx);
+    CAN_THROTTLE.write(CANMessage(VESC_RPM_ID(THROTTLE_VESC_ID), &message[0],
+                                  sizeof(message), CANData, CANExtended));
   }
 }
 
@@ -139,10 +144,11 @@ void ActuationController::steering_pid_thread_impl() {
       steering_pid.reset_integral_error(0.0);
       sensors.steering_output = 0;
     }
-    const int32_t data = sensors.steering_output;
-    CAN_STEER.write(CANMessage(VESC_RPM_ID(STEER_VESC_ID),
-                               reinterpret_cast<const uint8_t *>(&data),
-                               sizeof(data), CANData, CANExtended));
+    uint8_t message[4] = {0, 0, 0, 0};
+    int32_t idx = 0;
+    buffer_append_int32(&message[0], sensors.steering_output, &idx);
+    CAN_STEER.write(CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0],
+                               sizeof(message), CANData, CANExtended));
     ThisThread::sleep_for(pid_interval);
   }
 }
@@ -154,7 +160,8 @@ void ActuationController::steering_thread_impl() {
     steering_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
     *cmd = clamp<float>(*cmd, -1.0, 1.0);
     *cmd =
-        map_range<float, float>(*cmd, -1.0, 1.0, MIN_STEER_DEG, MAX_STEER_DEG);
+        map_range<float, float>(*cmd, -1.0, 1.0, MIN_STEER_DEG, MAX_STEER_DEG) +
+        OFFSET_STEER_DEG;
     *cmd = deg_to_rad<float, float>(*cmd);
     current_steering_cmd = *cmd;
     delete cmd;
@@ -191,10 +198,22 @@ void ActuationController::sensor_poll_thread_impl() {
   ThisThread::sleep_for(std::chrono::milliseconds(1000));
   static constexpr std::chrono::milliseconds poll_interval{
       DEFAULT_SENSOR_POLL_INTERVAL_MS};
+  static const auto throttle_vesc_status_filter = CAN_THROTTLE.filter(
+      VESC_STATUS_ID(THROTTLE_VESC_ID), 0x0001, CANExtended);
+
   while (!ThisThread::flags_get()) {
     sensors.steering_rad = steer_encoder.dutycycle();
     sensors.steering_rad =
         map_range<float, float>(sensors.steering_rad, 0.0, 1.0, 0.0, 2 * M_PI);
+
+    CANMessage throttle_vesc_status_msg;
+    if (CAN_THROTTLE.read(throttle_vesc_status_msg,
+                          throttle_vesc_status_filter)) {
+      int32_t idx = 0;
+      sensors.rl_rad =
+          buffer_get_float32(&throttle_vesc_status_msg.data[0], 1.0, &idx);
+      sensors.rr_rad = sensors.rl_rad;
+    }
     ThisThread::sleep_for(poll_interval);
   }
 }

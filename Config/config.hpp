@@ -27,10 +27,10 @@
 
 // UART-specific settings
 #define BAUD_RATE 115200
-#define UART_RX_PIN PD_2
-#define UART_TX_PIN PC_12
-//#define UART_RX_PIN PE_7
-//#define UART_TX_PIN PE_8
+//#define UART_RX_PIN PD_2
+//#define UART_TX_PIN PC_12
+#define UART_RX_PIN PE_7
+#define UART_TX_PIN PE_8
 
 // Generic comm settings
 #define RECV_BUFFER_SIZE 32
@@ -60,8 +60,8 @@
 #define DEFAULT_ACTUATION_INTERVAL_MS 1000
 #define DEFAULT_ACTUATION_LOST_TOLERANCE_MS 2000
 // How often should sensor polling happen
-#define DEFAULT_SENSOR_POLL_INTERVAL_MS 10
-#define DEFAULT_SENSOR_POLL_LOST_TOLERANCE_MS 100
+#define DEFAULT_SENSOR_POLL_INTERVAL_MS 50
+#define DEFAULT_SENSOR_POLL_LOST_TOLERANCE_MS 200
 
 // *********
 // Actuation
@@ -71,40 +71,42 @@
 #define CAN1_BAUDRATE 250000
 #define CAN2_RX PB_5
 #define CAN2_TX PB_6
-#define CAN2_BAUDRATE 500000
+#define CAN2_BAUDRATE 250000
 // Throttle
 // #define THROTTLE_PWM_PIN PA_6
-#define CAN_THROTTLE CAN_1
+#define CAN_THROTTLE CAN_2
 #define MAX_THROTTLE_SPEED_ERPM 1000
 #define MAX_THROTTLE_CURRENT_MA 20000
+#define THROTTLE_ERPM_TO_RPS_RATIO 0.1
 #define THROTTLE_VESC_ID 5
 // Braking
-#define CAN_BRAKE CAN_2 // Which CAN bus to use for steering [CAN_1 | CAN_2]
+#define CAN_BRAKE CAN_1 // Which CAN bus to use for steering [CAN_1 | CAN_2]
 #define MAX_BRAKE_VAL 2500
 #define MIN_BRAKE_VAL 1500
 // Steering
-#define CAN_STEER CAN_1 // Which CAN bus to use for brake [CAN_1 | CAN_2]
+#define CAN_STEER CAN_2 // Which CAN bus to use for brake [CAN_1 | CAN_2]
 #define MAX_STEER_DEG 270.0
 #define MIN_STEER_DEG 90.0
 #define NEUTRAL_STEER_DEG 180.0
-#define MAX_STEER_SPEED_ERPM 1000
-#define MAX_STEER_CURRENT_MA 3000
-#define STEER_P 10.0
+#define OFFSET_STEER_DEG 10.0
+#define MAX_STEER_SPEED_ERPM 60000
+#define MAX_STEER_CURRENT_MA 30000
+#define STEER_P 15000.0
 #define STEER_I 0.0
-#define STEER_D 1.0
-#define STEER_DEADBAND_DEG 0.5
-#define PID_INTERVAL_MS 10
+#define STEER_D 3000.0
+#define STEER_DEADBAND_DEG 2.0
+#define PID_INTERVAL_MS 5
 #define STEER_VESC_ID 2
 
 // *******
 // Sensors
 // *******
 // PWM steering encoder
-#define STEER_ENCODER_PIN PB_10
+#define STEER_ENCODER_PIN PC_7
 
 // *****
 // ESTOP
 // *****
-#define ESTOP_PIN PC_7
+#define ESTOP_PIN PB_10
 
 #endif // CONFIG_HPP_
