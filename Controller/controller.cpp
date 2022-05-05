@@ -43,7 +43,7 @@ Controller::Controller()
       watchdog_(DEFAULT_WD_INTERVAL_MS, DEFAULT_WD_MAX_INACTIVITY_MS,
                 DEFAULT_WD_INTERVAL_MS),
       estop_interrupt(ESTOP_PIN) {
-  std::cout << "Initializing Controller class" << std::endl;
+  // std::cout << "Initializing Controller class" << std::endl;
   attach(callback(this, &Controller::watchdog_callback));
   pc_hb_watcher_.attach(callback(this, &Controller::watchdog_callback));
   ctl_cmd_watcher_.attach(callback(this, &Controller::watchdog_callback));
@@ -59,11 +59,11 @@ Controller::Controller()
   // estop_interrupt.rise(callback(this,
   // &Controller::estop_interrupt_callback));
 
-  std::cout << "Controller class initialized" << std::endl;
+  // std::cout << "Controller class initialized" << std::endl;
 }
 
 void Controller::watchdog_callback() {
-  std::cout << "Controller watchdog triggered" << std::endl;
+  // std::cout << "Controller watchdog triggered" << std::endl;
   if (get_state() != GkcLifecycle::Uninitialized &&
       get_state() != GkcLifecycle::Emergency) {
     emergency_stop();
@@ -71,7 +71,7 @@ void Controller::watchdog_callback() {
 }
 
 void Controller::packet_callback(const Handshake1GkcPacket &packet) {
-  std::cout << "Handshake received" << std::endl;
+  // std::cout << "Handshake received" << std::endl;
   if (get_state() == GkcLifecycle::Uninitialized) {
     Handshake2GkcPacket pkt;
     pkt.seq_number = packet.seq_number + 1;
@@ -255,7 +255,7 @@ void Controller::estop_interrupt_callback() {
 
 StateTransitionResult
 Controller::on_initialize(const GkcLifecycle &last_state) {
-  std::cout << "Start initialization" << std::endl;
+  // std::cout << "Start initialization" << std::endl;
   // if (estop_interrupt.read()) {
   //  send_log(LogPacket::Severity::ERROR,
   //           "ESTOP is still on. Initialization failed.");

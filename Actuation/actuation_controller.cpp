@@ -102,7 +102,7 @@ ActuationController::ActuationController(ILogger *logger)
       ISensorProvider(),
       current_steering_cmd(deg_to_rad<int32_t, float>(NEUTRAL_STEER_DEG + OFFSET_STEER_DEG)),
       steering_pid("steering", steering_pid_coeff), logger(logger) {
-  std::cout << "Initializing actuation" << std::endl;
+  // std::cout << "Initializing actuation" << std::endl;
   throttle_thread.start(
       callback(this, &ActuationController::throttle_thread_impl));
   steering_thread.start(
@@ -112,7 +112,7 @@ ActuationController::ActuationController(ILogger *logger)
   brake_thread.start(callback(this, &ActuationController::brake_thread_impl));
   sensor_poll_thread.start(
       callback(this, &ActuationController::sensor_poll_thread_impl));
-  std::cout << "Actuation initialized" << std::endl;
+  // std::cout << "Actuation initialized" << std::endl;
 }
 
 void ActuationController::throttle_thread_impl() {

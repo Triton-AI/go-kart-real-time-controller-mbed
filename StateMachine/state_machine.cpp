@@ -99,7 +99,7 @@ StateTransitionResult GkcStateMachine::emergency_stop() {
     break;
   case StateTransitionResult::FAILURE:
   case StateTransitionResult::ERROR:
-    std::cout << "Resetting MCU for Estop Failure";
+    // std::cout << "Resetting MCU for Estop Failure";
     NVIC_SystemReset();
   default:
     break;
