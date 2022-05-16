@@ -88,15 +88,23 @@
 #define MAX_STEER_DEG 270.0
 #define MIN_STEER_DEG 90.0
 #define NEUTRAL_STEER_DEG 180.0
-#define OFFSET_STEER_DEG -15.0
+#define OFFSET_STEER_DEG 0.0
+#define STEERING_CAL_OFF 0.0
 #define MAX_STEER_SPEED_ERPM 60000
 #define MAX_STEER_CURRENT_MA 30000
-#define STEER_P 20000.0
-#define STEER_I 100.0
-#define STEER_D 3500.0
-#define STEER_DEADBAND_DEG 1.0
-#define PID_INTERVAL_MS 5
+//Good configuration for current PID
+// #define STEER_P 20000.0
+// #define STEER_I 0//1000.0
+// #define STEER_D 3500.0
+//good configuration for RPM PID
+#define STEER_P 30000.0
+#define STEER_I 300
+#define STEER_D 500.0
+#define STEER_DEADBAND_DEG 2.0
+#define PID_INTERVAL_MS 10
 #define STEER_VESC_ID 2
+#define RIGHT_LSWITCH PF_14
+#define LEFT_LSWITCH PF_15
 
 // *******
 // Sensors

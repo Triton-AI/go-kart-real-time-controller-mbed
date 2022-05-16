@@ -87,14 +87,16 @@ void ActuationController::populate_reading(SensorGkcPacket &pkt) {
 PwmIn steer_encoder(STEER_ENCODER_PIN);
 CAN CAN_1(CAN1_RX, CAN1_TX, CAN1_BAUDRATE);
 CAN CAN_2(CAN2_RX, CAN2_TX, CAN2_BAUDRATE);
+DigitalIn   leftLimitSwitch(LEFT_LSWITCH);
+DigitalIn   rightLimitSwitch(RIGHT_LSWITCH);
 
 PidCoefficients steering_pid_coeff{STEER_P,
                                    STEER_I,
                                    STEER_D,
-                                   -MAX_STEER_CURRENT_MA,
-                                   MAX_STEER_CURRENT_MA,
-                                   -MAX_STEER_CURRENT_MA,
-                                   MAX_STEER_CURRENT_MA};
+                                     -MAX_STEER_SPEED_ERPM,
+                                    MAX_STEER_SPEED_ERPM,
+                                   -MAX_STEER_SPEED_ERPM,
+                                   MAX_STEER_SPEED_ERPM};
 
 ActuationController::ActuationController(ILogger *logger)
     : Watchable(DEFAULT_ACTUATION_INTERVAL_MS,
@@ -103,6 +105,8 @@ ActuationController::ActuationController(ILogger *logger)
       current_steering_cmd(deg_to_rad<int32_t, float>(NEUTRAL_STEER_DEG + OFFSET_STEER_DEG)),
       steering_pid("steering", steering_pid_coeff), logger(logger) {
   // std::cout << "Initializing actuation" << std::endl;
+  leftLimitSwitch.mode(PullUp);
+  rightLimitSwitch.mode(PullUp);
   throttle_thread.start(
       callback(this, &ActuationController::throttle_thread_impl));
   steering_thread.start(
@@ -119,7 +123,7 @@ void ActuationController::throttle_thread_impl() {
   float *cmd;
   while (!ThisThread::flags_get()) {
     throttle_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
-    current_throttle_cmd = clamp<float>(*cmd, 0.0, 1.0);
+    current_throttle_cmd = clamp<float>(*cmd, -1.0, 1.0);
     const int32_t vesc_current_cmd =
         static_cast<int32_t>(current_throttle_cmd * MAX_THROTTLE_CURRENT_MA);
     delete cmd;
@@ -146,10 +150,14 @@ void ActuationController::steering_pid_thread_impl() {
     }
     uint8_t message[4] = {0, 0, 0, 0};
     int32_t idx = 0;
+    if (!leftLimitSwitch && sensors.steering_output > 0)
+        sensors.steering_output = 0;
+    if (!rightLimitSwitch && sensors.steering_output < 0)
+        sensors.steering_output = 0;
     buffer_append_int32(&message[0], sensors.steering_output, &idx);
-    CAN_STEER.write(CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0],
+    CAN_STEER.write(CANMessage(VESC_RPM_ID(STEER_VESC_ID), &message[0],
                                sizeof(message), CANData, CANExtended));
-    ThisThread::sleep_for(pid_interval);
+    ThisThread::sleep_for(pid_interval);//std::cout << current_steering_cmd << " " << sensors.steering_rad << " " << sensors.steering_output << endl;
   }
 }
 
@@ -205,6 +213,7 @@ void ActuationController::sensor_poll_thread_impl() {
     sensors.steering_rad = steer_encoder.dutycycle();
     sensors.steering_rad =
         map_range<float, float>(sensors.steering_rad, 0.0, 1.0, 0.0, 2 * M_PI);
+    sensors.steering_rad = fmod(sensors.steering_rad + STEERING_CAL_OFF, 2 * M_PI);
 
     CANMessage throttle_vesc_status_msg;
     if (CAN_THROTTLE.read(throttle_vesc_status_msg,
