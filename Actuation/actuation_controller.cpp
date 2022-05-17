@@ -150,14 +150,17 @@ void ActuationController::steering_pid_thread_impl() {
     }
     uint8_t message[4] = {0, 0, 0, 0};
     int32_t idx = 0;
+    #ifdef ENABLE_LSWITCH
     if (!leftLimitSwitch && sensors.steering_output > 0)
         sensors.steering_output = 0;
     if (!rightLimitSwitch && sensors.steering_output < 0)
         sensors.steering_output = 0;
+    #endif
+    std::cout << current_steering_cmd << " " << sensors.steering_rad << " " << sensors.steering_output << endl;
     buffer_append_int32(&message[0], sensors.steering_output, &idx);
     CAN_STEER.write(CANMessage(VESC_RPM_ID(STEER_VESC_ID), &message[0],
                                sizeof(message), CANData, CANExtended));
-    ThisThread::sleep_for(pid_interval);//std::cout << current_steering_cmd << " " << sensors.steering_rad << " " << sensors.steering_output << endl;
+    ThisThread::sleep_for(pid_interval);
   }
 }
 
@@ -213,7 +216,7 @@ void ActuationController::sensor_poll_thread_impl() {
     sensors.steering_rad = steer_encoder.dutycycle();
     sensors.steering_rad =
         map_range<float, float>(sensors.steering_rad, 0.0, 1.0, 0.0, 2 * M_PI);
-    sensors.steering_rad = fmod(sensors.steering_rad + STEERING_CAL_OFF, 2 * M_PI);
+    sensors.steering_rad = fmod(sensors.steering_rad + deg_to_rad<float, float>(STEERING_CAL_OFF), 2 * M_PI);
 
     CANMessage throttle_vesc_status_msg;
     if (CAN_THROTTLE.read(throttle_vesc_status_msg,

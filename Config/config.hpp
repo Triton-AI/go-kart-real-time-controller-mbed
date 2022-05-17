@@ -89,8 +89,8 @@
 #define MIN_STEER_DEG 90.0
 #define NEUTRAL_STEER_DEG 180.0
 #define OFFSET_STEER_DEG 0.0
-#define STEERING_CAL_OFF 0.0
-#define MAX_STEER_SPEED_ERPM 60000
+#define STEERING_CAL_OFF 80.0
+#define MAX_STEER_SPEED_ERPM 30000
 #define MAX_STEER_CURRENT_MA 30000
 //Good configuration for current PID
 // #define STEER_P 20000.0
@@ -105,6 +105,7 @@
 #define STEER_VESC_ID 2
 #define RIGHT_LSWITCH PF_14
 #define LEFT_LSWITCH PF_15
+#define ENABLE_LSWITCH      //comment to remove limit switches behaviour
 
 // *******
 // Sensors
