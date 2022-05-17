@@ -85,22 +85,22 @@
 #define MIN_BRAKE_VAL 1500
 // Steering
 #define CAN_STEER CAN_2 // Which CAN bus to use for brake [CAN_1 | CAN_2]
-#define MAX_STEER_DEG 270.0
-#define MIN_STEER_DEG 90.0
+#define MAX_STEER_DEG 250.0
+#define MIN_STEER_DEG 120.0
 #define NEUTRAL_STEER_DEG 180.0
 #define OFFSET_STEER_DEG 0.0
-#define STEERING_CAL_OFF 80.0
-#define MAX_STEER_SPEED_ERPM 30000
+#define STEERING_CAL_OFF 130.0
+#define MAX_STEER_SPEED_ERPM 50000
 #define MAX_STEER_CURRENT_MA 30000
 //Good configuration for current PID
 // #define STEER_P 20000.0
 // #define STEER_I 0//1000.0
 // #define STEER_D 3500.0
 //good configuration for RPM PID
-#define STEER_P 30000.0
-#define STEER_I 300
-#define STEER_D 500.0
-#define STEER_DEADBAND_DEG 2.0
+#define STEER_P 60000.0
+#define STEER_I 0.0
+#define STEER_D 5000.0
+#define STEER_DEADBAND_DEG 1.0
 #define PID_INTERVAL_MS 10
 #define STEER_VESC_ID 2
 #define RIGHT_LSWITCH PF_14

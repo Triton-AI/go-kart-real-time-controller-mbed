@@ -156,7 +156,7 @@ void ActuationController::steering_pid_thread_impl() {
     if (!rightLimitSwitch && sensors.steering_output < 0)
         sensors.steering_output = 0;
     #endif
-    std::cout << current_steering_cmd << " " << sensors.steering_rad << " " << sensors.steering_output << endl;
+    //std::cout << current_steering_cmd << " " << sensors.steering_rad << " " << sensors.steering_output << endl;
     buffer_append_int32(&message[0], sensors.steering_output, &idx);
     CAN_STEER.write(CANMessage(VESC_RPM_ID(STEER_VESC_ID), &message[0],
                                sizeof(message), CANData, CANExtended));
