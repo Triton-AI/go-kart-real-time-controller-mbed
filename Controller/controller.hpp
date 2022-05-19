@@ -52,6 +52,11 @@ public:
   void packet_callback(const Shutdown1GkcPacket &packet);
   void packet_callback(const Shutdown2GkcPacket &packet);
   void packet_callback(const LogPacket &packet);
+  
+  //This is to make rc controller work
+  void deactivate_controller();
+  void set_actuation_values(float steerVal, float throttleVal, float breakVal);
+  void activate_controller();
 
   // ISensorProvider API
   virtual bool is_ready();
