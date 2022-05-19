@@ -77,6 +77,8 @@
 #define CAN_THROTTLE CAN_2
 #define MAX_THROTTLE_SPEED_ERPM 1000
 #define MAX_THROTTLE_CURRENT_MA 5000
+#define MAX_THROTTLE_MS 10
+#define CONST_ERPM2MS 10
 #define THROTTLE_ERPM_TO_RPS_RATIO 0.1
 #define THROTTLE_VESC_ID 5
 // Braking
@@ -113,6 +115,15 @@
 // *******
 // PWM steering encoder
 #define STEER_ENCODER_PIN PC_7
+
+#define STERING_MAPPTING    {{0, 0,},\
+                            {15, 5,},\
+                            {30, 9,},\
+                            {50, 15,},\
+                            {70, 20,},\
+                            {90, 30,}};
+#define MIN__WHEEL_STEER_DEG -30
+#define MAX__WHEEL_STEER_DEG 30
 
 // *****
 // ESTOP

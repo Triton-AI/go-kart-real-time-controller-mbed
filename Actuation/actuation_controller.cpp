@@ -22,6 +22,7 @@
 #include <cmath>
 #include <cstdint>
 #include <string>
+#include <map>
 
 #define M_PI 3.14159265
 #define VESC_RPM_EXTENDED_ID 0x03
@@ -70,6 +71,16 @@ constexpr D map_range(const S &source, const S &source_min, const S &source_max,
 
 template <typename S, typename D> constexpr D deg_to_rad(const S &deg) {
   return static_cast<D>(deg * M_PI / 180.0);
+}float   map_steer2motor(float steer_angle)
+{
+        std::map<float, float> mapping = STERING_MAPPTING;
+
+        int sign = steer_angle >= 0 ? 1 : -1;
+        for (auto it = mapping.begin(); it != mapping.end(); it++)
+                if ((std::next(it))->second >= sign * steer_angle)
+                        return sign * map_range<float, float>(sign * steer_angle, it->second, std::next(it)->second, it->first, std::next(it)->first);
+        return 0;
+
 }
 
 bool ActuationController::is_ready() { return true; }
@@ -123,9 +134,8 @@ void ActuationController::throttle_thread_impl() {
   float *cmd;
   while (!ThisThread::flags_get()) {
     throttle_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
-    current_throttle_cmd = clamp<float>(*cmd, -1.0, 1.0);
-    const int32_t vesc_current_cmd =
-        static_cast<int32_t>(current_throttle_cmd * MAX_THROTTLE_CURRENT_MA);
+    current_throttle_cmd = clamp<float>(*cmd, -MAX_THROTTLE_MS, MAX_THROTTLE_MS);
+    const int32_t vesc_current_cmd = current_throttle_cmd / CONST_ERPM2MS;
     delete cmd;
     uint8_t message[4] = {0, 0, 0, 0};
     int32_t idx = 0;
@@ -174,11 +184,11 @@ void ActuationController::steering_thread_impl() {
   float *cmd;
   while (!ThisThread::flags_get()) {
     steering_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
-    *cmd = clamp<float>(*cmd, -1.0, 1.0);
-    *cmd =
-        map_range<float, float>(*cmd, -1.0, 1.0, MIN_STEER_DEG, MAX_STEER_DEG) +
-        OFFSET_STEER_DEG;
-    *cmd = deg_to_rad<float, float>(*cmd);
+    *cmd = clamp<float>(*cmd ,deg_to_rad<float, float>(MIN__WHEEL_STEER_DEG), deg_to_rad<float, float>(MAX__WHEEL_STEER_DEG));
+    *cmd = map_steer2motor(*cmd) + M_PI;
+    *cmd = clamp<float>(*cmd,deg_to_rad<float, float>(MIN_STEER_DEG), deg_to_rad<float, float>(MAX_STEER_DEG));
+    //*cmd = map_range<float, float>(*cmd, -1.0, 1.0, MIN_STEER_DEG, MAX_STEER_DEG) + OFFSET_STEER_DEG;
+    //*cmd = deg_to_rad<float, float>(*cmd);
     current_steering_cmd = *cmd;
     delete cmd;
   }
