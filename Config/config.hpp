@@ -60,7 +60,7 @@
 #define DEFAULT_ACTUATION_INTERVAL_MS 1000
 #define DEFAULT_ACTUATION_LOST_TOLERANCE_MS 2000
 // How often should sensor polling happen
-#define DEFAULT_SENSOR_POLL_INTERVAL_MS 50
+#define DEFAULT_SENSOR_POLL_INTERVAL_MS 10
 #define DEFAULT_SENSOR_POLL_LOST_TOLERANCE_MS 200
 
 // *********
@@ -89,17 +89,18 @@
 #define MIN_STEER_DEG 120.0
 #define NEUTRAL_STEER_DEG 180.0
 #define OFFSET_STEER_DEG 0.0
-#define STEERING_CAL_OFF 130.0
+#define STEERING_CAL_OFF 100.0
 #define MAX_STEER_SPEED_ERPM 50000
 #define MAX_STEER_CURRENT_MA 30000
 //Good configuration for current PID
-// #define STEER_P 20000.0
-// #define STEER_I 0//1000.0
-// #define STEER_D 3500.0
+#define STEER_P 30000.0
+#define STEER_I 10000
+#define STEER_D 2000//5000.0
+#define STEADY_STATE_CURRENT_MULT 20000
 //good configuration for RPM PID
-#define STEER_P 60000.0
-#define STEER_I 0.0
-#define STEER_D 5000.0
+//#define STEER_P 60000.0
+//#define STEER_I 0.0
+//#define STEER_D 5000.0
 #define STEER_DEADBAND_DEG 1.0
 #define PID_INTERVAL_MS 10
 #define STEER_VESC_ID 2
