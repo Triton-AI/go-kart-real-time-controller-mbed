@@ -155,15 +155,16 @@ void Controller::packet_callback(const StateTransitionGkcPacket &packet) {
 
 void Controller::packet_callback(const ControlGkcPacket &packet) {
   // TODO
-  // std::stringstream s;
-  // s << "[Control] thr: " << packet.throttle << ", brk: " << packet.brake
-  //  << ", str: " << packet.steering;
-  // send_log(LogPacket::Severity::INFO, s.str());
+   std::stringstream s;
+   s << "[Control] thr: " << packet.throttle << ", brk: " << packet.brake
+    << ", str: " << packet.steering;
+   send_log(LogPacket::Severity::INFO, s.str());
   if (get_state() == GkcLifecycle::Active) {
     actuation_.set_throttle_cmd(new float(packet.throttle));
     actuation_.set_brake_cmd(new float(packet.brake));
     actuation_.set_steering_cmd(new float(packet.steering));
   }
+
 }
 
 void Controller::packet_callback(const SensorGkcPacket &packet) {

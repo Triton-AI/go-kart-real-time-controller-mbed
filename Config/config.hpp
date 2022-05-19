@@ -27,10 +27,10 @@
 
 // UART-specific settings
 #define BAUD_RATE 115200
-//#define UART_RX_PIN PD_2
-//#define UART_TX_PIN PC_12
-#define UART_RX_PIN PE_7
-#define UART_TX_PIN PE_8
+#define UART_RX_PIN PD_2
+#define UART_TX_PIN PC_12
+//#define UART_RX_PIN PE_7
+//#define UART_TX_PIN PE_8
 
 // Generic comm settings
 #define RECV_BUFFER_SIZE 32
@@ -78,8 +78,8 @@
 #define MAX_THROTTLE_SPEED_ERPM 1000
 #define MAX_THROTTLE_CURRENT_MA 5000
 #define MAX_THROTTLE_MS 10
-#define CONST_ERPM2MS 10
-#define THROTTLE_ERPM_TO_RPS_RATIO 0.1
+#define CONST_ERPM2MS 0.0010861111108
+//#define THROTTLE_ERPM_TO_RPS_RATIO 0.1
 #define THROTTLE_VESC_ID 5
 // Braking
 #define CAN_BRAKE CAN_1 // Which CAN bus to use for steering [CAN_1 | CAN_2]
@@ -91,12 +91,12 @@
 #define MIN_STEER_DEG 120.0
 #define NEUTRAL_STEER_DEG 180.0
 #define OFFSET_STEER_DEG 0.0
-#define STEERING_CAL_OFF 100.0
+#define STEERING_CAL_OFF 20
 #define MAX_STEER_SPEED_ERPM 50000
 #define MAX_STEER_CURRENT_MA 30000
 //Good configuration for current PID
 #define STEER_P 30000.0
-#define STEER_I 10000
+#define STEER_I 7000
 #define STEER_D 2000//5000.0
 #define STEADY_STATE_CURRENT_MULT 20000
 //good configuration for RPM PID
@@ -116,14 +116,20 @@
 // PWM steering encoder
 #define STEER_ENCODER_PIN PC_7
 
+// motor angle - left wheel - right wheel - average
+// 0	0	0	0
+// 30	8	10	9
+// 50	9	15	12
+// 70	12	22	17
+// 80	10	30	20
+
 #define STERING_MAPPTING    {{0, 0,},\
-                            {15, 5,},\
-                            {30, 9,},\
-                            {50, 15,},\
-                            {70, 20,},\
-                            {90, 30,}};
-#define MIN__WHEEL_STEER_DEG -30
-#define MAX__WHEEL_STEER_DEG 30
+                            {0.523599, 0.15708,},\
+                            {0.872665, 0.20944,},\
+                            {1.22173, 0.296706,},\
+                            {1.39626, 0.349066,}};
+#define MIN__WHEEL_STEER_DEG -20
+#define MAX__WHEEL_STEER_DEG 20
 
 // *****
 // ESTOP

@@ -71,7 +71,8 @@ constexpr D map_range(const S &source, const S &source_min, const S &source_max,
 
 template <typename S, typename D> constexpr D deg_to_rad(const S &deg) {
   return static_cast<D>(deg * M_PI / 180.0);
-}float   map_steer2motor(float steer_angle)
+}
+float   map_steer2motor(float steer_angle)
 {
         std::map<float, float> mapping = STERING_MAPPTING;
 
@@ -79,6 +80,18 @@ template <typename S, typename D> constexpr D deg_to_rad(const S &deg) {
         for (auto it = mapping.begin(); it != mapping.end(); it++)
                 if ((std::next(it))->second >= sign * steer_angle)
                         return sign * map_range<float, float>(sign * steer_angle, it->second, std::next(it)->second, it->first, std::next(it)->first);
+        return 0;
+
+}
+float   map_motor2steer(float motor_angle)
+{
+        std::map<float, float> mapping = STERING_MAPPTING;
+
+        motor_angle -= M_PI;
+        int sign = motor_angle >= 0 ? 1 : -1;
+        for (auto it = mapping.begin(); it != mapping.end(); it++)
+                if ((std::next(it))->first >= sign * motor_angle)
+                        return sign * map_range<float, float>(sign * motor_angle, it->first, std::next(it)->first, it->second, std::next(it)->second);
         return 0;
 
 }
@@ -92,7 +105,7 @@ void ActuationController::populate_reading(SensorGkcPacket &pkt) {
   pkt.values.wheel_speed_fr = sensors.fr_rad;
   pkt.values.wheel_speed_rl = sensors.rl_rad;
   pkt.values.wheel_speed_rr = sensors.rr_rad;
-  pkt.values.servo_angle_rad = static_cast<float>(sensors.steering_output);
+  pkt.values.servo_angle_rad = map_motor2steer(sensors.steering_rad);//static_cast<float>(sensors.steering_output);
 }
 
 PwmIn steer_encoder(STEER_ENCODER_PIN);
@@ -168,6 +181,7 @@ void ActuationController::steering_pid_thread_impl() {
         buffer_append_int32(&message[0], sensors.steering_output, &idx);
         CAN_STEER.write(CANMessage(VESC_RPM_ID(STEER_VESC_ID), &message[0],
                                 sizeof(message), CANData, CANExtended));
+        steering_pid.reset_integral_error(0.0);
     }
     else 
     {
@@ -186,6 +200,7 @@ void ActuationController::steering_thread_impl() {
     steering_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
     *cmd = clamp<float>(*cmd ,deg_to_rad<float, float>(MIN__WHEEL_STEER_DEG), deg_to_rad<float, float>(MAX__WHEEL_STEER_DEG));
     *cmd = map_steer2motor(*cmd) + M_PI;
+    //std::cout << *cmd << endl;
     *cmd = clamp<float>(*cmd,deg_to_rad<float, float>(MIN_STEER_DEG), deg_to_rad<float, float>(MAX_STEER_DEG));
     //*cmd = map_range<float, float>(*cmd, -1.0, 1.0, MIN_STEER_DEG, MAX_STEER_DEG) + OFFSET_STEER_DEG;
     //*cmd = deg_to_rad<float, float>(*cmd);
