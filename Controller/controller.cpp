@@ -44,14 +44,14 @@ Controller::Controller()
                 DEFAULT_WD_INTERVAL_MS),
       estop_interrupt(ESTOP_PIN) {
   // std::cout << "Initializing Controller class" << std::endl;
-  attach(callback(this, &Controller::watchdog_callback));
-  pc_hb_watcher_.attach(callback(this, &Controller::watchdog_callback));
-  ctl_cmd_watcher_.attach(callback(this, &Controller::watchdog_callback));
-  Watchable::activate();
+  //attach(callback(this, &Controller::watchdog_callback));
+  //pc_hb_watcher_.attach(callback(this, &Controller::watchdog_callback));
+  //ctl_cmd_watcher_.attach(callback(this, &Controller::watchdog_callback));
+  //Watchable::activate();
 
-  watchdog_.add_to_watchlist(this);
-  watchdog_.add_to_watchlist(&pc_hb_watcher_);
-  watchdog_.add_to_watchlist(&ctl_cmd_watcher_);
+  //watchdog_.add_to_watchlist(this);
+  //watchdog_.add_to_watchlist(&pc_hb_watcher_);
+  //watchdog_.add_to_watchlist(&ctl_cmd_watcher_);
 
   sensor_.register_provider(&actuation_);
   // sensor_.register_provider(this);
@@ -155,16 +155,24 @@ void Controller::packet_callback(const StateTransitionGkcPacket &packet) {
 
 void Controller::packet_callback(const ControlGkcPacket &packet) {
   // TODO
-  // std::stringstream s;
-  // s << "[Control] thr: " << packet.throttle << ", brk: " << packet.brake
-  //  << ", str: " << packet.steering;
-  // send_log(LogPacket::Severity::INFO, s.str());
+   std::stringstream s;
+   s << "[Control] thr: " << packet.throttle << ", brk: " << packet.brake
+    << ", str: " << packet.steering;
+   send_log(LogPacket::Severity::INFO, s.str());
   if (get_state() == GkcLifecycle::Active) {
     actuation_.set_throttle_cmd(new float(packet.throttle));
     actuation_.set_brake_cmd(new float(packet.brake));
     actuation_.set_steering_cmd(new float(packet.steering));
   }
+
 }
+
+void Controller::set_actuation_values(float steerVal, float throttleVal, float breakVal){
+    actuation_.set_throttle_cmd(new float(steerVal));
+    actuation_.set_brake_cmd(new float(throttleVal));
+    actuation_.set_steering_cmd(new float(breakVal));
+}
+
 
 void Controller::packet_callback(const SensorGkcPacket &packet) {
   send_log(LogPacket::Severity::WARNING,
@@ -275,6 +283,22 @@ Controller::on_deactivate(const GkcLifecycle &last_state) {
   ctl_cmd_watcher_.deactivate();
   // TODO(haoru): disallow actuation
   return StateTransitionResult::SUCCESS;
+}
+
+void Controller::deactivate_controller(){
+    ctl_cmd_watcher_.deactivate();
+    pc_hb_watcher_.deactivate();
+    heartbeat_thread.terminate();
+    sensor_poll_thread.terminate();
+}
+
+void Controller::activate_controller(){
+    ctl_cmd_watcher_.activate();
+    pc_hb_watcher_.activate();
+  heartbeat_thread.start(
+      callback(this, &Controller::heartbeat_thread_callback));
+  sensor_poll_thread.start(
+      callback(this, &Controller::sensor_poll_thread_callback));
 }
 
 StateTransitionResult Controller::on_activate(const GkcLifecycle &last_state) {
