@@ -17,7 +17,7 @@ namespace gkc{
                 PwmIn* chan2, PwmIn* chan3){
         cont_p = new Controller();
         cont_p->deactivate_controller();
-        steerVal = chan1;
+        steerVal = chan1;  //dont these belong to RCController? how are they accessed below
         throttleVal = chan2;
         switchVal = chan3;
         isRC = true;
@@ -25,17 +25,17 @@ namespace gkc{
     }
 
     void RCController::getSensor(){
-        float currSteer, currThrottle, currBreak;
+        float currSteer, currThrottle, currBreak = 0;
         bool currSwitch;
 
         float pwmSteer = steerVal->dutycycle();
         float pwmThrottle = throttleVal->dutycycle();
         float pwmSwitch = switchVal->dutycycle();
 
-        currSteer = toAngle(pwmSteer);
-        currThrottle = toThrottle(pwmThrottle);
-        currBreak = toBreak(pwmThrottle);
-        currSwitch = toBool(pwmSwitch);
+        currSteer = Map.Steering(pwmSteer);
+        currThrottle = Map.Trigger(pwmThrottle);
+        //currBreak = toBreak(pwmThrottle);
+        currSwitch = Map.Red(pwmSwitch);
 
         if(currSwitch){
             if(!isRC){
@@ -51,18 +51,7 @@ namespace gkc{
             }       
         }
     }
-    float RCController::toAngle(float aPWMVal){
-        return 0.0;
-    }
-    float RCController::toThrottle(float aPWMVal){
-        return 0.0;
-    }
-    float RCController::toBreak(float aPWMVal){
-        return 0.0;
-    }
-    bool RCController::toBool(float aPWMVal){
-        return false;
-    }
+
 }
 
 }

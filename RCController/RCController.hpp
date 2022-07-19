@@ -16,16 +16,49 @@
 namespace tritonai {
 namespace gkc{
 
+struct Translation {
+
+float Steering(float Steering_Duty) {
+     //50 degree maximum left and right
+     float Steering_Ang;
+     double a = -(50000/49);
+     double b = -1000;
+     if(Steering_Duty <= 0.151) Steering_Ang = b * (Steering_Duty-0.151);
+     else if(Steering_Duty >= 0.151) Steering_Ang = a * (Steering_Duty-0.151);
+
+    //ensure that Steering angle does not exceed 50 degrees
+     if(Steering_Ang > 50) Steering_Ang = 50;
+     if(Steering_Ang <-50) Steering_Ang = -50;
+     if ( -1 < Steering_Ang && Steering_Ang < 1 ) Steering_Ang = 0.0;
+
+    return Steering_Ang;
+    //return Steering_Duty;
+}
+
+float Trigger(float Trigger_Duty){   //2000x-300=y
+    float throttle;
+    if (Trigger_Duty <= 0.151) throttle = 0.0;
+   
+    else throttle = (2000 * Trigger_Duty) - 300;
+   
+    if(throttle > 100) throttle = 100;
+
+    return throttle;
+}
+
+bool Red(float Red_Duty){
+    if (Red_Duty >= 0.19) return true;
+    else return false;
+}
+
+};
+
 class RCController{
 public:
     RCController(PwmIn* chan1, PwmIn* chan2, PwmIn* chan3);
     void getSensor();
 
 private:
-    float toAngle(float aPWMVal);
-    float toThrottle(float aPWMVal);
-    float toBreak(float aPWMVal);
-    bool toBool(float aPWMVal);
 
     Controller* cont_p;
     PwmIn* steerVal;
@@ -33,7 +66,7 @@ private:
     PwmIn* switchVal;
 
     Thread sensor_write;
-
+    Translation Map;
     bool isRC;
 };
 }
