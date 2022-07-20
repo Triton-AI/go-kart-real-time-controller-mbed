@@ -43,6 +43,8 @@ float Trigger(float Trigger_Duty){   //2000x-300=y
    
     if(throttle > 100) throttle = 100;
 
+    throttle = throttle/100; //added this new line after leaving lab
+
     return throttle;
 }
 
