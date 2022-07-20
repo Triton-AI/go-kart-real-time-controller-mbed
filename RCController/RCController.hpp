@@ -12,6 +12,7 @@
 #include "controller.hpp"
 #include "mbed.h"
 #include "PwmIn.h"
+#define  PI 3.141592654
 
 namespace tritonai {
 namespace gkc{
@@ -20,7 +21,8 @@ struct Translation {
 
 float Steering(float Steering_Duty) {
      //50 degree maximum left and right
-     float Steering_Ang;
+     double Steering_Ang;
+     double Steering_Ang_rad;
      double a = -(50000/49);
      double b = -1000;
      if(Steering_Duty <= 0.151) Steering_Ang = b * (Steering_Duty-0.151);
@@ -31,7 +33,10 @@ float Steering(float Steering_Duty) {
      if(Steering_Ang <-50) Steering_Ang = -50;
      if ( -1 < Steering_Ang && Steering_Ang < 1 ) Steering_Ang = 0.0;
 
-    return Steering_Ang;
+    Steering_Ang_rad = Steering_Ang * (PI/180);
+
+    return Steering_Ang_rad;
+
     //return Steering_Duty;
 }
 
