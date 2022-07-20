@@ -10,16 +10,17 @@
  */
 
 #include "RCController.hpp"
+#include "config.hpp"
 
 namespace tritonai {
 namespace gkc{
-    RCController::RCController(PwmIn* chan1, 
-                PwmIn* chan2, PwmIn* chan3){
+    RCController::RCController(){
+
         cont_p = new Controller();
         cont_p->deactivate_controller();
-        steerVal = chan1;  //dont these belong to RCController? how are they accessed below
-        throttleVal = chan2;
-        switchVal = chan3;
+        steerVal = new PwmIn(Steer_Pin);  
+        throttleVal = new PwmIn(Throttle_Pin); 
+        switchVal = new PwmIn(Red_Pin); 
         isRC = true;
         sensor_write.start(callback(this,&RCController::getSensor));
     }

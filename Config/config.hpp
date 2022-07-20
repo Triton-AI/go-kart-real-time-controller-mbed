@@ -136,4 +136,11 @@
 // *****
 #define ESTOP_PIN PB_10
 
+//PWM pins for RC car
+
+#define Steer_Pin PA_5
+#define Throttle_Pin PA_6
+#define Red_Pin PD_12
+
+
 #endif // CONFIG_HPP_

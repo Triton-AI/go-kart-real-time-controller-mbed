@@ -62,7 +62,7 @@ bool Red(float Red_Duty){
 
 class RCController{
 public:
-    RCController(PwmIn* chan1, PwmIn* chan2, PwmIn* chan3);
+    RCController();
     void getSensor();
 
 private:
