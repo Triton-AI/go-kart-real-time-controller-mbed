@@ -28,6 +28,6 @@ int main() {
   // std::cout << "[Copyright Triton AI 2022]" << std::endl;
   button.rise(&NVIC_SystemReset);
   auto controller = new RCController();
-  while (1)
-    ;
+  while(1);
+
 }

@@ -11,6 +11,9 @@
 
 #include "RCController.hpp"
 #include "config.hpp"
+PwmIn steer(Steer_Pin); 
+PwmIn throttle(Throttle_Pin);
+PwmIn red(Red_Pin);
 
 namespace tritonai {
 namespace gkc{
@@ -18,41 +21,64 @@ namespace gkc{
 
         cont_p = new Controller();
         cont_p->deactivate_controller();
-        steerVal = new PwmIn(Steer_Pin);  
-        throttleVal = new PwmIn(Throttle_Pin); 
-        switchVal = new PwmIn(Red_Pin); 
-        isRC = true;
+        std::cout << "Initializing RCController class" << std::endl;
         sensor_write.start(callback(this,&RCController::getSensor));
     }
 
     void RCController::getSensor(){
+        bool isRC = true;
+
+        while(1!=0){
         float currSteer, currThrottle, currBreak = 0;
         bool currSwitch;
-
-        float pwmSteer = steerVal->dutycycle();
-        float pwmThrottle = throttleVal->dutycycle();
-        float pwmSwitch = switchVal->dutycycle();
+        // std::cout << currSteer << std::endl;
+        // std::cout << currThrottle << std::endl;
+        // std::cout << currBreak << std::endl;
+        float pwmSteer = steer.dutycycle();
+        float pwmThrottle = throttle.dutycycle();
+        float pwmSwitch = red.dutycycle();
 
         currSteer = Map.Steering(pwmSteer);
         currThrottle = Map.Trigger(pwmThrottle);
         //currBreak = toBreak(pwmThrottle);
         currSwitch = Map.Red(pwmSwitch);
+        //std::cout << pwmSwitch << std::endl;
+        // std::cout << currSteer << std::endl;
+        // std::cout << currThrottle << std::endl;
+        // std::cout << currSwitch << std::endl << std::endl;
+       
 
-        if(currSwitch){
-            if(!isRC){
-                cont_p->deactivate_controller();
-                isRC = true;
+        // for(int i =0 ; i < 5 ; i++)
+        // {
+        //     std::cout << "input ?" << std::endl;
+        //     ThisThread::sleep_for(3000ms);
+        //     pwmSwitch = red.dutycycle();
+        //     currSwitch = Map.Red(pwmSwitch);
+        //     std::cout << currSwitch << std::endl;
+
+        
+            if(currSwitch == 1){
+                if(isRC == false){
+                    std::cout << "deactivated " << isRC << std::endl;
+                    cont_p->deactivate_controller();
+                    isRC = true;
+                }
+                //std::cout << currSteer << ", " << currThrottle << ", " << currBreak << endl;
+                cont_p->set_actuation_values(currSteer, currThrottle, currBreak);
+                //std::cout << "switch should be  " << currSwitch << std::endl << std::endl;
+                //std::cout << "hello world" << std::endl;
+
             }
-            cont_p->set_actuation_values(currSteer, currThrottle, currBreak);
-        }
-        else{
-            if(isRC){
-                cont_p->activate_controller();
-                isRC = false;
-            }       
+            else{
+                if(isRC){
+                    cont_p->activate_controller();
+                    isRC = false;
+                }       
+            }
+            ThisThread::sleep_for(100ms);
+            
         }
     }
-
 }
 
 }

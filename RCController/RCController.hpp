@@ -54,7 +54,7 @@ float Trigger(float Trigger_Duty){   //2000x-300=y
 }
 
 bool Red(float Red_Duty){
-    if (Red_Duty >= 0.19) return true;
+    if (Red_Duty >= 0.19 && Red_Duty < .25) return true;
     else return false;
 }
 
@@ -74,7 +74,6 @@ private:
 
     Thread sensor_write;
     Translation Map;
-    bool isRC;
 };
 }
 }
