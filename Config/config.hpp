@@ -91,7 +91,7 @@
 #define MIN_STEER_DEG 120.0
 #define NEUTRAL_STEER_DEG 180.0
 #define OFFSET_STEER_DEG 0.0
-#define STEERING_CAL_OFF 20
+#define STEERING_CAL_OFF -30 //this changes the calibration angle
 #define MAX_STEER_SPEED_ERPM 50000
 #define MAX_STEER_CURRENT_MA 30000
 //Good configuration for current PID
@@ -127,7 +127,7 @@
                             {0.523599, 0.15708,},\
                             {0.872665, 0.20944,},\
                             {1.22173, 0.296706,},\
-                            {1.39626, 0.349066,}};
+                            {1.39626, 0.349066,}}; // takes first and last column
 #define MIN__WHEEL_STEER_DEG -20
 #define MAX__WHEEL_STEER_DEG 20
 

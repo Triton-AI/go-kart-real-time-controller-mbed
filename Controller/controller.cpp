@@ -180,7 +180,7 @@ void Controller::set_actuation_values(float steerVal, float throttleVal, float b
     actuation_.set_steering_cmd(new float(steerVal));//set to break
     std::cout << "steering: " << steerVal << endl;
     float h3 = actuation_.get_steering_cmd();
-    std::cout << h3 << std::endl;
+    std::cout <<"from controller.cpp " << h3 <<  std::endl;
 
 }
 

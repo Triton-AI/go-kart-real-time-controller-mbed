@@ -23,14 +23,14 @@ float Steering(float Steering_Duty) {
      //50 degree maximum left and right
      double Steering_Ang;
      double Steering_Ang_rad;
-     double a = -(50000/49);
-     double b = -1000;
-     if(Steering_Duty <= 0.151) Steering_Ang = b * (Steering_Duty-0.151);
+     double a = -(50000/49)*.6;
+     double b = -1000*.6;
+     if(Steering_Duty <= 0.151) Steering_Ang = b * (Steering_Duty-0.151); //this is not correct uses 50 degrees max
      else if(Steering_Duty >= 0.151) Steering_Ang = a * (Steering_Duty-0.151);
 
     //ensure that Steering angle does not exceed 50 degrees
-     if(Steering_Ang > 50) Steering_Ang = 50;
-     if(Steering_Ang <-50) Steering_Ang = -50;
+     if(Steering_Ang > MAX__WHEEL_STEER_DEG) Steering_Ang = MAX__WHEEL_STEER_DEG;
+     if(Steering_Ang <MIN__WHEEL_STEER_DEG) Steering_Ang = MIN__WHEEL_STEER_DEG;
      if ( -1 < Steering_Ang && Steering_Ang < 1 ) Steering_Ang = 0.0;
 
     Steering_Ang_rad = Steering_Ang * (PI/180);
