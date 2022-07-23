@@ -93,7 +93,7 @@
 #define OFFSET_STEER_DEG 0.0
 #define STEERING_CAL_OFF -30 //this changes the calibration angle
 #define MAX_STEER_SPEED_ERPM 50000
-#define MAX_STEER_CURRENT_MA 30000
+#define MAX_STEER_CURRENT_MA 30000 //this controls the max steering current i.e strength 
 //Good configuration for current PID
 #define STEER_P 30000.0
 #define STEER_I 7000
