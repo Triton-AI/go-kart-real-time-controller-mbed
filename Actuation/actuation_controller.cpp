@@ -186,9 +186,11 @@ void ActuationController::steering_pid_thread_impl() {
     else 
     {
         buffer_append_int32(&message[0], sensors.steering_output, &idx);
-        CAN_STEER.write(CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0],
+        CAN_STEER.write(CANMessage(VESC_RPM_ID(STEER_VESC_ID), &message[0],
                                 sizeof(message), CANData, CANExtended));
+        std::cout << current_steering_cmd << "\t" << sensors.steering_rad << "\t" << sensors.steering_output <<  endl;
     }
+    
     ThisThread::sleep_for(pid_interval);
   }
 }
