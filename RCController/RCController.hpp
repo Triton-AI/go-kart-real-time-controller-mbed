@@ -66,7 +66,7 @@ public:
     void getSensor();
 
 private:
-
+    float rolling_average;
     Controller* cont_p;
     PwmIn* steerVal;
     PwmIn* throttleVal;

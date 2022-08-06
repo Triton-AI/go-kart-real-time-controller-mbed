@@ -23,6 +23,7 @@ namespace gkc{
         cont_p->deactivate_controller();
         std::cout << "Initializing RCController class" << std::endl;
         sensor_write.start(callback(this,&RCController::getSensor));
+        rolling_average = 0;
     }
 
     void RCController::getSensor(){
@@ -37,7 +38,9 @@ namespace gkc{
         float pwmSteer = steer.dutycycle();
         float pwmThrottle = throttle.dutycycle();
         float pwmSwitch = red.dutycycle();
-
+        
+        pwmSteer = pwmSteer*.5+rolling_average*.5;
+        rolling_average = pwmSteer;
         currSteer = Map.Steering(pwmSteer);
         currThrottle = Map.Trigger(pwmThrottle);
         //currBreak = toBreak(pwmThrottle);

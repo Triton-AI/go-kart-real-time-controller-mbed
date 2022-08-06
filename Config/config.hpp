@@ -93,21 +93,23 @@
 #define OFFSET_STEER_DEG 0.0
 #define STEERING_CAL_OFF -30 //this changes the calibration angle
 #define MAX_STEER_SPEED_ERPM 50000
-#define MAX_STEER_CURRENT_MA 50000 //this controls the max steering current i.e strength 
+#define MAX_STEER_CURRENT_MA 30000 //this controls the max steering current i.e strength 
 //Good configuration for current PID
 // #define STEER_P 30000.0
 // #define STEER_I 7000
 // #define STEER_D 2000//5000.0
-// #define STEADY_STATE_CURRENT_MULT 20000
-// #define STEER_P 7000
-// #define STEER_I 0
-// #define STEER_D 1000//5000.0
+//#define STEADY_STATE_CURRENT_MULT 20000
+//Good configuration for current PID in the air
+#define STEER_P 7000
+#define STEER_I 7000
+#define STEER_D 1000//5000.0
 #define STEADY_STATE_CURRENT_MULT 0
 //good configuration for RPM PID
-#define STEER_P 15000.0
-#define STEER_I 0.0
-#define STEER_D 0.0
-#define STEER_DEADBAND_DEG 0.0
+// #define STEER_P 25000.0
+// #define STEER_I 0.0
+// #define STEER_D 100
+// #define STEADY_STATE_CURRENT_MULT 0
+#define STEER_DEADBAND_DEG 0.5 //VESC already has a limit of min ERPM := 600. Enything bellow this is already used as 0.
 #define PID_INTERVAL_MS 10
 #define STEER_VESC_ID 2
 #define RIGHT_LSWITCH PF_14
