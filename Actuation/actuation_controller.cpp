@@ -23,111 +23,128 @@
 #include <cstdint>
 #include <string>
 #include <map>
+#include <utility>
 
 #define M_PI 3.14159265
 #define VESC_RPM_EXTENDED_ID 0x03
 #define VESC_CURRENT_EXTENDED_ID 0x01
 #define VESC_STATUS_EXTENDED_ID 0x09
-static constexpr uint32_t VESC_RPM_ID(const uint32_t &vesc_id) {
+static constexpr uint32_t VESC_RPM_ID(const uint32_t &vesc_id)
+{
   return (static_cast<uint32_t>(VESC_RPM_EXTENDED_ID) << sizeof(uint8_t) * 8) |
          static_cast<uint32_t>(vesc_id);
 }
-static constexpr uint32_t VESC_CURRENT_ID(const uint32_t &vesc_id) {
+static constexpr uint32_t VESC_CURRENT_ID(const uint32_t &vesc_id)
+{
   return (static_cast<uint32_t>(VESC_CURRENT_EXTENDED_ID)
           << sizeof(uint8_t) * 8) |
          static_cast<uint32_t>(vesc_id);
 }
-static constexpr uint32_t VESC_STATUS_ID(const uint32_t &vesc_id) {
+static constexpr uint32_t VESC_STATUS_ID(const uint32_t &vesc_id)
+{
   return (static_cast<uint32_t>(VESC_STATUS_EXTENDED_ID)
           << sizeof(uint8_t) * 8) |
          static_cast<uint32_t>(vesc_id);
 }
 
-namespace tritonai {
-namespace gkc {
+namespace tritonai
+{
+namespace gkc
+{
 
 template <typename T>
-constexpr T clamp(const T &val, const T &min, const T &max) {
-  if (val > max) {
+constexpr T clamp(const T &val, const T &min, const T &max)
+{
+  if (val > max)
+  {
     return max;
-  } else if (val < min) {
+  }
+  else if (val < min)
+  {
     return min;
-  } else {
+  }
+  else
+  {
     return val;
   }
 }
 
-template <typename T> constexpr T non_linear_map(const T &val) {
+template <typename T>
+constexpr T non_linear_map(const T &val)
+{
   return (exp(val * val * val) - 1) / (exp(1) - 1);
 }
 
 template <typename S, typename D>
 constexpr D map_range(const S &source, const S &source_min, const S &source_max,
-                      const D &dest_min, const D &dest_max) {
+                      const D &dest_min, const D &dest_max)
+{
   float source_f = clamp<S>(source, source_min, source_max);
   source_f = (source_f - source_min) / (source_max - source_min);
   return static_cast<D>(source_f * (dest_max - dest_min) + dest_min);
 }
 
-template <typename S, typename D> constexpr D deg_to_rad(const S &deg) {
+template <typename S, typename D>
+constexpr D deg_to_rad(const S &deg)
+{
   return static_cast<D>(deg * M_PI / 180.0);
 }
-float   map_steer2motor(float steer_angle)
+float map_steer2motor(float steer_angle)
 {
-        std::map<float, float> mapping = STERING_MAPPTING;
+  std::map<float, float> mapping = STERING_MAPPTING;
 
-        int sign = steer_angle >= 0 ? 1 : -1;
-        for (auto it = mapping.begin(); it != mapping.end(); it++)
-                if ((std::next(it))->second >= sign * steer_angle)
-                        return sign * map_range<float, float>(sign * steer_angle, it->second, std::next(it)->second, it->first, std::next(it)->first);
-        return 0;
-
+  int sign = steer_angle >= 0 ? 1 : -1;
+  for (auto it = mapping.begin(); it != mapping.end(); it++)
+    if ((std::next(it))->second >= sign * steer_angle)
+      return sign * map_range<float, float>(sign * steer_angle, it->second, std::next(it)->second, it->first, std::next(it)->first);
+  return 0;
 }
-float   map_motor2steer(float motor_angle)
+float map_motor2steer(float motor_angle)
 {
-        std::map<float, float> mapping = STERING_MAPPTING;
+  std::map<float, float> mapping = STERING_MAPPTING;
 
-        motor_angle -= M_PI;
-        int sign = motor_angle >= 0 ? 1 : -1;
-        for (auto it = mapping.begin(); it != mapping.end(); it++)
-                if ((std::next(it))->first >= sign * motor_angle)
-                        return sign * map_range<float, float>(sign * motor_angle, it->first, std::next(it)->first, it->second, std::next(it)->second);
-        return 0;
-
+  motor_angle -= M_PI;
+  int sign = motor_angle >= 0 ? 1 : -1;
+  for (auto it = mapping.begin(); it != mapping.end(); it++)
+    if ((std::next(it))->first >= sign * motor_angle)
+      return sign * map_range<float, float>(sign * motor_angle, it->first, std::next(it)->first, it->second, std::next(it)->second);
+  return 0;
 }
 
 bool ActuationController::is_ready() { return true; }
 
-void ActuationController::populate_reading(SensorGkcPacket &pkt) {
+void ActuationController::populate_reading(SensorGkcPacket &pkt)
+{
   pkt.values.steering_angle_rad = sensors.steering_rad;
   pkt.values.brake_pressure = sensors.brake_psi;
   pkt.values.wheel_speed_fl = sensors.fl_rad;
   pkt.values.wheel_speed_fr = sensors.fr_rad;
   pkt.values.wheel_speed_rl = sensors.rl_rad;
   pkt.values.wheel_speed_rr = sensors.rr_rad;
-  pkt.values.servo_angle_rad = map_motor2steer(sensors.steering_rad);//static_cast<float>(sensors.steering_output);
+  pkt.values.servo_angle_rad = map_motor2steer(sensors.steering_rad); // static_cast<float>(sensors.steering_output);
 }
 
 PwmIn steer_encoder(STEER_ENCODER_PIN);
 CAN CAN_1(CAN1_RX, CAN1_TX, CAN1_BAUDRATE);
 CAN CAN_2(CAN2_RX, CAN2_TX, CAN2_BAUDRATE);
-DigitalIn   leftLimitSwitch(LEFT_LSWITCH);
-DigitalIn   rightLimitSwitch(RIGHT_LSWITCH);
+DigitalIn leftLimitSwitch(LEFT_LSWITCH);
+DigitalIn rightLimitSwitch(RIGHT_LSWITCH);
 
 PidCoefficients steering_pid_coeff{STEER_P,
-                                   STEER_I,
-                                   STEER_D,
-                                     -MAX_STEER_CURRENT_MA,
+                                    STEER_I,
+                                    STEER_D,
+                                    -MAX_STEER_CURRENT_MA,
                                     MAX_STEER_CURRENT_MA,
-                                   -MAX_STEER_CURRENT_MA,
-                                   MAX_STEER_CURRENT_MA};
+                                    -MAX_STEER_CURRENT_MA,
+                                    MAX_STEER_CURRENT_MA};
 
 ActuationController::ActuationController(ILogger *logger)
     : Watchable(DEFAULT_ACTUATION_INTERVAL_MS,
                 DEFAULT_ACTUATION_LOST_TOLERANCE_MS),
       ISensorProvider(),
-      current_steering_cmd(deg_to_rad<int32_t, float>(NEUTRAL_STEER_DEG + OFFSET_STEER_DEG)),
-      steering_pid("steering", steering_pid_coeff), logger(logger) {
+      current_steering_cmd(deg_to_rad<int32_t, float>(NEUTRAL_STEER_DEG)),
+      steering_pid("steering", steering_pid_coeff), logger(logger)
+{
   // std::cout << "Initializing actuation" << std::endl;
   leftLimitSwitch.mode(PullUp);
   rightLimitSwitch.mode(PullUp);
@@ -143,9 +160,11 @@ ActuationController::ActuationController(ILogger *logger)
   // std::cout << "Actuation initialized" << std::endl;
 }
 
-void ActuationController::throttle_thread_impl() {
+void ActuationController::throttle_thread_impl()
+{
   float *cmd;
-  while (!ThisThread::flags_get()) {
+  while (!ThisThread::flags_get())
+  {
     throttle_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
     current_throttle_cmd = clamp<float>(*cmd, -MAX_THROTTLE_MS, MAX_THROTTLE_MS);
     const int32_t vesc_current_cmd = current_throttle_cmd / CONST_ERPM2MS;
@@ -158,16 +177,32 @@ void ActuationController::throttle_thread_impl() {
   }
 }
 
-void ActuationController::steering_pid_thread_impl() {
+void ActuationController::steering_pid_thread_impl()
+{
   ThisThread::sleep_for(std::chrono::milliseconds(1000));
   static constexpr std::chrono::milliseconds pid_interval(
       static_cast<uint32_t>(PID_INTERVAL_MS));
 
-  while (!ThisThread::flags_get()) {
+  static int movelessTime = 0;
+  static double lastMeasurement, lastControll;
+
+  while (!ThisThread::flags_get())
+  {
+
+    if (movelessTime > 10)
+      steering_pid.reset_integral_error(0.0);
     sensors.steering_output = static_cast<int32_t>(steering_pid.update(
-        current_steering_cmd - sensors.steering_rad, PID_INTERVAL_MS / 1000.0));
+        current_steering_cmd - sensors.steering_rad + 2 * M_PI * sensors.steering_wraps, PID_INTERVAL_MS / 1000.0));
+    if (abs(sensors.steering_rad - lastMeasurement) > deg_to_rad<float, float>(STEER_DEADBAND_DEG))
+      movelessTime = 0;
+    else
+      movelessTime++;
+
+    lastMeasurement = sensors.steering_rad;
+    lastControll = current_steering_cmd;
     if (abs(sensors.steering_rad - current_steering_cmd) <
-        deg_to_rad<float, float>(STEER_DEADBAND_DEG)) {
+        deg_to_rad<float, float>(STEER_DEADBAND_DEG))
+    {
       steering_pid.reset_integral_error(0.0);
       sensors.steering_output = 0;
     }
@@ -177,41 +212,41 @@ void ActuationController::steering_pid_thread_impl() {
     sensors.steering_output = clamp<float>(sensors.steering_output, -MAX_STEER_CURRENT_MA, MAX_STEER_CURRENT_MA);
     if ((!rightLimitSwitch && sensors.steering_output < 0) || (!leftLimitSwitch && sensors.steering_output > 0))
     {
-        sensors.steering_output = 0;
-        buffer_append_int32(&message[0], sensors.steering_output, &idx);
-        CAN_STEER.write(CANMessage(VESC_RPM_ID(STEER_VESC_ID), &message[0],
-                                sizeof(message), CANData, CANExtended));
-        steering_pid.reset_integral_error(0.0);
+      sensors.steering_output = 0;
+      buffer_append_int32(&message[0], sensors.steering_output, &idx);
+      CAN_STEER.write(CANMessage(VESC_RPM_ID(STEER_VESC_ID), &message[0],
+                                  sizeof(message), CANData, CANExtended));
+      steering_pid.reset_integral_error(0.0);
     }
-    else 
+    else
     {
-        buffer_append_int32(&message[0], sensors.steering_output, &idx);
-        CAN_STEER.write(CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0],
-                                sizeof(message), CANData, CANExtended));
-        std::cout << current_steering_cmd << "\t" << sensors.steering_rad << "\t" << sensors.steering_output <<  endl;
+      buffer_append_int32(&message[0], sensors.steering_output, &idx);
+      CAN_STEER.write(CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0],
+                                  sizeof(message), CANData, CANExtended));
     }
-    
     ThisThread::sleep_for(pid_interval);
   }
 }
 
-void ActuationController::steering_thread_impl() {
+void ActuationController::steering_thread_impl()
+{
   ThisThread::sleep_for(std::chrono::milliseconds(1000));
   float *cmd;
-  while (!ThisThread::flags_get()) {
+  while (!ThisThread::flags_get())
+  {
     steering_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
-    *cmd = clamp<float>(*cmd ,deg_to_rad<float, float>(MIN__WHEEL_STEER_DEG), deg_to_rad<float, float>(MAX__WHEEL_STEER_DEG));
+    *cmd = clamp<float>(*cmd, deg_to_rad<float, float>(MIN__WHEEL_STEER_DEG), deg_to_rad<float, float>(MAX__WHEEL_STEER_DEG));
+    // std::cout << "the clamped value is " << *cmd << std::endl;
     *cmd = map_steer2motor(*cmd) + M_PI;
-    //std::cout << *cmd << endl;
-    *cmd = clamp<float>(*cmd,deg_to_rad<float, float>(MIN_STEER_DEG), deg_to_rad<float, float>(MAX_STEER_DEG));
-    //*cmd = map_range<float, float>(*cmd, -1.0, 1.0, MIN_STEER_DEG, MAX_STEER_DEG) + OFFSET_STEER_DEG;
-    //*cmd = deg_to_rad<float, float>(*cmd);
+    // std::cout << "the mottor value is " << *cmd << std::endl << std::endl;
+    *cmd = clamp<float>(*cmd, deg_to_rad<float, float>(MIN_STEER_DEG), deg_to_rad<float, float>(MAX_STEER_DEG));
     current_steering_cmd = *cmd;
     delete cmd;
   }
 }
 
-void ActuationController::brake_thread_impl() {
+void ActuationController::brake_thread_impl()
+{
   // CAN frame format
   // |       Byte 1      |           Byte 2            |
   // | 8 LSB of position | CE | ME | 5 MSB of position |
@@ -225,7 +260,8 @@ void ActuationController::brake_thread_impl() {
   float *cmd;
   uint16_t brake_output = 0;
 
-  while (!ThisThread::flags_get()) {
+  while (!ThisThread::flags_get())
+  {
     brake_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
     current_brake_cmd = clamp<float>(*cmd, 0.0, 1.0);
     delete cmd;
@@ -237,22 +273,43 @@ void ActuationController::brake_thread_impl() {
   }
 }
 
-void ActuationController::sensor_poll_thread_impl() {
+void ActuationController::sensor_poll_thread_impl()
+{
   ThisThread::sleep_for(std::chrono::milliseconds(1000));
   static constexpr std::chrono::milliseconds poll_interval{
       DEFAULT_SENSOR_POLL_INTERVAL_MS};
   static const auto throttle_vesc_status_filter = CAN_THROTTLE.filter(
       VESC_STATUS_ID(THROTTLE_VESC_ID), 0x0001, CANExtended);
 
-  while (!ThisThread::flags_get()) {
-    sensors.steering_rad = steer_encoder.dutycycle();
-    sensors.steering_rad =
-        map_range<float, float>(sensors.steering_rad, 0.0, 1.0, 0.0, 2 * M_PI);
-    sensors.steering_rad = fmod(sensors.steering_rad + deg_to_rad<float, float>(STEERING_CAL_OFF), 2 * M_PI);
-    
+  while (!ThisThread::flags_get())
+  {
+    static float oldWrap;
+    float newRad = steer_encoder.dutycycle();
+    newRad = map_range<float, float>(newRad, 0.0, 1.0, 0.0, 2 * M_PI);
+    newRad = fmod(newRad + deg_to_rad<float, float>(STEERING_CAL_OFF), 2 * M_PI);
+    if ((newRad < M_PI / 4 && sensors.steering_rad > 7 * M_PI / 4) ||
+        (sensors.steering_rad < M_PI / 4 && newRad > 7 * M_PI / 4))
+    {
+      if (sensors.steering_wraps == 0)
+        oldWrap = newRad;
+      if (std::abs(sensors.steering_rad - oldWrap) > std::abs(sensors.steering_rad - (oldWrap + 2 * M_PI)))
+        sensors.steering_wraps = -1;
+      else if (std::abs(sensors.steering_rad - oldWrap) > std::abs(sensors.steering_rad - (oldWrap - 2 * M_PI)))
+        sensors.steering_wraps = 1;
+      else
+        sensors.steering_wraps = 0;
+    }
+
+    sensors.steering_rad = newRad;
+
+    // sensors.steering_rad = steer_encoder.dutycycle();
+    // sensors.steering_rad = map_range<float, float>(sensors.steering_rad, 0.0, 1.0, 0.0, 2 * M_PI);
+    // sensors.steering_rad = fmod(sensors.steering_rad + deg_to_rad<float, float>(STEERING_CAL_OFF), 2 * M_PI);
+
     CANMessage throttle_vesc_status_msg;
     if (CAN_THROTTLE.read(throttle_vesc_status_msg,
-                          throttle_vesc_status_filter)) {
+                          throttle_vesc_status_filter))
+    {
       int32_t idx = 0;
       sensors.rl_rad =
           buffer_get_float32(&throttle_vesc_status_msg.data[0], 1.0, &idx);

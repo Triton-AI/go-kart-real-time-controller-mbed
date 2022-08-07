@@ -30,6 +30,8 @@ struct ActuationSensors {
   float fr_rad = 0.0;
   float rl_rad = 0.0;
   float rr_rad = 0.0;
+  int steering_wraps = 0;
+  bool hasSwitched = false;
   int32_t steering_output = 0;
 };
 
