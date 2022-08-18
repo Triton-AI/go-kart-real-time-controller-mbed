@@ -133,9 +133,9 @@ DigitalIn rightLimitSwitch(RIGHT_LSWITCH);
 PidCoefficients steering_pid_coeff{STEER_P,
                                     STEER_I,
                                     STEER_D,
-                                    -MAX_STEER_CURRENT_MA,
+                                    MIN_STEER_CURRENT_MA,
                                     MAX_STEER_CURRENT_MA,
-                                    -MAX_STEER_CURRENT_MA,
+                                    MIN_STEER_CURRENT_MA,
                                     MAX_STEER_CURRENT_MA};
 
 ActuationController::ActuationController(ILogger *logger)
@@ -200,6 +200,7 @@ void ActuationController::steering_pid_thread_impl()
 
     lastMeasurement = sensors.steering_rad;
     lastControll = current_steering_cmd;
+    //std::cout << current_steering_cmd << endl;
     if (abs(sensors.steering_rad - current_steering_cmd) <
         deg_to_rad<float, float>(STEER_DEADBAND_DEG))
     {
@@ -208,9 +209,14 @@ void ActuationController::steering_pid_thread_impl()
     }
     uint8_t message[4] = {0, 0, 0, 0};
     int32_t idx = 0;
-    sensors.steering_output += STEADY_STATE_CURRENT_MULT * (current_steering_cmd - 3.14);
-    sensors.steering_output = clamp<float>(sensors.steering_output, -MAX_STEER_CURRENT_MA, MAX_STEER_CURRENT_MA);
-    if ((!rightLimitSwitch && sensors.steering_output < 0) || (!leftLimitSwitch && sensors.steering_output > 0))
+    if (current_steering_cmd - 3.14 > 0)
+        sensors.steering_output += STEADY_STATE_CURRENT_MULT_POS * (current_steering_cmd - 3.14);
+    else
+        sensors.steering_output += STEADY_STATE_CURRENT_MULT_NEG * (current_steering_cmd - 3.14);
+    sensors.steering_output = clamp<float>(sensors.steering_output, MIN_STEER_CURRENT_MA, MAX_STEER_CURRENT_MA);
+    if ((!rightLimitSwitch && sensors.steering_output < 0) || (!leftLimitSwitch && sensors.steering_output > 0)
+    ||  (sensors.steering_rad > deg_to_rad<float,float>(MAX_STEER_DEG - VIRTUAL_LIMIT_OFF) && sensors.steering_output > 0) || 
+    (sensors.steering_rad < deg_to_rad<float,float>(MIN_STEER_DEG + VIRTUAL_LIMIT_OFF)  && sensors.steering_output < 0))
     {
       sensors.steering_output = 0;
       buffer_append_int32(&message[0], sensors.steering_output, &idx);
@@ -224,8 +230,10 @@ void ActuationController::steering_pid_thread_impl()
       CAN_STEER.write(CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0],
                                   sizeof(message), CANData, CANExtended));
     }
+    std::cout << sensors.steering_output << endl;
     ThisThread::sleep_for(pid_interval);
   }
+  
 }
 
 void ActuationController::steering_thread_impl()
@@ -236,7 +244,7 @@ void ActuationController::steering_thread_impl()
   {
     steering_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
     *cmd = clamp<float>(*cmd, deg_to_rad<float, float>(MIN__WHEEL_STEER_DEG), deg_to_rad<float, float>(MAX__WHEEL_STEER_DEG));
-    // std::cout << "the clamped value is " << *cmd << std::endl;
+    //std::cout << "the clamped value is " << *cmd << std::endl;
     *cmd = map_steer2motor(*cmd) + M_PI;
     // std::cout << "the mottor value is " << *cmd << std::endl << std::endl;
     *cmd = clamp<float>(*cmd, deg_to_rad<float, float>(MIN_STEER_DEG), deg_to_rad<float, float>(MAX_STEER_DEG));
@@ -287,6 +295,7 @@ void ActuationController::sensor_poll_thread_impl()
     float newRad = steer_encoder.dutycycle();
     newRad = map_range<float, float>(newRad, 0.0, 1.0, 0.0, 2 * M_PI);
     newRad = fmod(newRad + deg_to_rad<float, float>(STEERING_CAL_OFF), 2 * M_PI);
+    //std::cout << newRad << std::endl;
     if ((newRad < M_PI / 4 && sensors.steering_rad > 7 * M_PI / 4) ||
         (sensors.steering_rad < M_PI / 4 && newRad > 7 * M_PI / 4))
     {

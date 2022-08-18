@@ -89,20 +89,23 @@
 #define CAN_STEER CAN_2 // Which CAN bus to use for brake [CAN_1 | CAN_2]
 #define MAX_STEER_DEG 250.0
 #define MIN_STEER_DEG 120.0
+#define VIRTUAL_LIMIT_OFF 5
 #define NEUTRAL_STEER_DEG 180.0
-#define STEERING_CAL_OFF 150 //this changes the calibration angle
+#define STEERING_CAL_OFF 185 //this changes the calibration angle
 #define MAX_STEER_SPEED_ERPM 50000
-#define MAX_STEER_CURRENT_MA 30000 //this controls the max steering current i.e strength 
+#define MAX_STEER_CURRENT_MA 22000 //this controls the max steering current i.e strength 
+#define MIN_STEER_CURRENT_MA -30000 //this controls the max steering current i.e strength 
 //Good configuration for current PID
 // #define STEER_P 30000.0
 // #define STEER_I 7000
 // #define STEER_D 2000//5000.0
 //#define STEADY_STATE_CURRENT_MULT 20000
 //Good configuration for current PID in the air
-#define STEER_P 30000
+#define STEER_P 20000
 #define STEER_I 7000
-#define STEER_D 2000//5000.0
-#define STEADY_STATE_CURRENT_MULT 0
+#define STEER_D 3000//5000.0
+#define STEADY_STATE_CURRENT_MULT_POS 18000
+#define STEADY_STATE_CURRENT_MULT_NEG 25000
 //good configuration for RPM PID
 // #define STEER_P 25000.0
 // #define STEER_I 0.0
