@@ -188,7 +188,7 @@ void ActuationController::steering_pid_thread_impl()
 
   while (!ThisThread::flags_get())
   {
-
+      
     if (movelessTime > 10)
       steering_pid.reset_integral_error(0.0);
     sensors.steering_output = static_cast<int32_t>(steering_pid.update(
@@ -214,9 +214,12 @@ void ActuationController::steering_pid_thread_impl()
     else
         sensors.steering_output += STEADY_STATE_CURRENT_MULT_NEG * (current_steering_cmd - 3.14);
     sensors.steering_output = clamp<float>(sensors.steering_output, MIN_STEER_CURRENT_MA, MAX_STEER_CURRENT_MA);
+
+    //ensure we are not going out of range anglewise
     if ((!rightLimitSwitch && sensors.steering_output < 0) || (!leftLimitSwitch && sensors.steering_output > 0)
     ||  (sensors.steering_rad > deg_to_rad<float,float>(MAX_STEER_DEG - VIRTUAL_LIMIT_OFF) && sensors.steering_output > 0) || 
-    (sensors.steering_rad < deg_to_rad<float,float>(MIN_STEER_DEG + VIRTUAL_LIMIT_OFF)  && sensors.steering_output < 0))
+   (sensors.steering_rad < deg_to_rad<float,float>(MIN_STEER_DEG + VIRTUAL_LIMIT_OFF)  && sensors.steering_output < 0))
+    
     {
       sensors.steering_output = 0;
       buffer_append_int32(&message[0], sensors.steering_output, &idx);
@@ -224,13 +227,21 @@ void ActuationController::steering_pid_thread_impl()
                                   sizeof(message), CANData, CANExtended));
       steering_pid.reset_integral_error(0.0);
     }
+    //limit the speed of steering output
+    else if(abs(sensors.steering_speed) > 1.5){
+        sensors.steering_output = 0;
+        buffer_append_int32(&message[0], sensors.steering_output, &idx);
+        CAN_STEER.write(CANMessage(VESC_RPM_ID(STEER_VESC_ID), &message[0],
+                                  sizeof(message), CANData, CANExtended));
+        steering_pid.reset_integral_error(0.0);
+    }
     else
     {
       buffer_append_int32(&message[0], sensors.steering_output, &idx);
       CAN_STEER.write(CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0],
                                   sizeof(message), CANData, CANExtended));
     }
-    std::cout << sensors.steering_output << endl;
+    //std::cout << sensors.steering_output << endl;
     ThisThread::sleep_for(pid_interval);
   }
   
@@ -283,49 +294,64 @@ void ActuationController::brake_thread_impl()
 
 void ActuationController::sensor_poll_thread_impl()
 {
-  ThisThread::sleep_for(std::chrono::milliseconds(1000));
-  static constexpr std::chrono::milliseconds poll_interval{
-      DEFAULT_SENSOR_POLL_INTERVAL_MS};
-  static const auto throttle_vesc_status_filter = CAN_THROTTLE.filter(
-      VESC_STATUS_ID(THROTTLE_VESC_ID), 0x0001, CANExtended);
-
-  while (!ThisThread::flags_get())
-  {
-    static float oldWrap;
-    float newRad = steer_encoder.dutycycle();
-    newRad = map_range<float, float>(newRad, 0.0, 1.0, 0.0, 2 * M_PI);
-    newRad = fmod(newRad + deg_to_rad<float, float>(STEERING_CAL_OFF), 2 * M_PI);
-    //std::cout << newRad << std::endl;
-    if ((newRad < M_PI / 4 && sensors.steering_rad > 7 * M_PI / 4) ||
-        (sensors.steering_rad < M_PI / 4 && newRad > 7 * M_PI / 4))
+    static long long current_time;
+    static long long previous_time;
+    bool has_moved = false;
+    double radDiff, radSpeed;
+    static long timeDiff;
+    ThisThread::sleep_for(std::chrono::milliseconds(1000));
+    static constexpr std::chrono::milliseconds poll_interval{
+        DEFAULT_SENSOR_POLL_INTERVAL_MS};
+    static const auto throttle_vesc_status_filter = CAN_THROTTLE.filter(
+        VESC_STATUS_ID(THROTTLE_VESC_ID), 0x0001, CANExtended);
+    previous_time = us_ticker_read();
+    current_time = us_ticker_read();
+    while (!ThisThread::flags_get())
     {
-      if (sensors.steering_wraps == 0)
-        oldWrap = newRad;
-      if (std::abs(sensors.steering_rad - oldWrap) > std::abs(sensors.steering_rad - (oldWrap + 2 * M_PI)))
-        sensors.steering_wraps = -1;
-      else if (std::abs(sensors.steering_rad - oldWrap) > std::abs(sensors.steering_rad - (oldWrap - 2 * M_PI)))
-        sensors.steering_wraps = 1;
-      else
-        sensors.steering_wraps = 0;
+        static float oldWrap;
+        float oldRad = sensors.steering_rad;
+        float newRad = steer_encoder.dutycycle();
+        newRad = map_range<float, float>(newRad, 0.0, 1.0, 0.0, 2 * M_PI);
+        newRad = fmod(newRad + deg_to_rad<float, float>(STEERING_CAL_OFF), 2 * M_PI);
+        //std::cout << newRad << std::endl;
+        if ((newRad < M_PI / 4 && sensors.steering_rad > 7 * M_PI / 4) ||
+            (sensors.steering_rad < M_PI / 4 && newRad > 7 * M_PI / 4))
+        {
+            if (sensors.steering_wraps == 0)
+                oldWrap = newRad;
+            if (std::abs(sensors.steering_rad - oldWrap) > std::abs(sensors.steering_rad - (oldWrap + 2 * M_PI)))
+            sensors.steering_wraps = -1;
+            else if (std::abs(sensors.steering_rad - oldWrap) > std::abs(sensors.steering_rad - (oldWrap - 2 * M_PI)))
+            sensors.steering_wraps = 1;
+            else
+            sensors.steering_wraps = 0;
+        }
+        sensors.steering_rad = newRad;
+        current_time = us_ticker_read();
+        if(has_moved){
+            radDiff = oldRad - newRad;
+            timeDiff = current_time - previous_time;
+            sensors.steering_speed = pow(10,6)*radDiff/timeDiff;
+            //std::cout << radSpeed << std::endl;
+        }
+        if(!has_moved)
+            has_moved = true;
+        previous_time = current_time;
+        // sensors.steering_rad = steer_encoder.dutycycle();
+        // sensors.steering_rad = map_range<float, float>(sensors.steering_rad, 0.0, 1.0, 0.0, 2 * M_PI);
+        // sensors.steering_rad = fmod(sensors.steering_rad + deg_to_rad<float, float>(STEERING_CAL_OFF), 2 * M_PI);
+
+        CANMessage throttle_vesc_status_msg;
+        if (CAN_THROTTLE.read(throttle_vesc_status_msg,
+                                throttle_vesc_status_filter))
+        {
+            int32_t idx = 0;
+            sensors.rl_rad =
+                buffer_get_float32(&throttle_vesc_status_msg.data[0], 1.0, &idx);
+            sensors.rr_rad = sensors.rl_rad;
+        }
+        ThisThread::sleep_for(poll_interval);
     }
-
-    sensors.steering_rad = newRad;
-
-    // sensors.steering_rad = steer_encoder.dutycycle();
-    // sensors.steering_rad = map_range<float, float>(sensors.steering_rad, 0.0, 1.0, 0.0, 2 * M_PI);
-    // sensors.steering_rad = fmod(sensors.steering_rad + deg_to_rad<float, float>(STEERING_CAL_OFF), 2 * M_PI);
-
-    CANMessage throttle_vesc_status_msg;
-    if (CAN_THROTTLE.read(throttle_vesc_status_msg,
-                          throttle_vesc_status_filter))
-    {
-      int32_t idx = 0;
-      sensors.rl_rad =
-          buffer_get_float32(&throttle_vesc_status_msg.data[0], 1.0, &idx);
-      sensors.rr_rad = sensors.rl_rad;
-    }
-    ThisThread::sleep_for(poll_interval);
-  }
 }
 } // namespace gkc
 } // namespace tritonai

@@ -31,6 +31,7 @@ struct ActuationSensors {
   float rl_rad = 0.0;
   float rr_rad = 0.0;
   int steering_wraps = 0;
+  float steering_speed = 0.0;
   bool hasSwitched = false;
   int32_t steering_output = 0;
 };
@@ -70,10 +71,12 @@ protected:
   void throttle_thread_impl();
   void steering_thread_impl();
   void steering_pid_thread_impl();
+  void steer_speed_pid_thread_impl();
   void brake_thread_impl();
   void sensor_poll_thread_impl();
 
   PidController steering_pid;
+  PidController steering_vel_pid;
   ILogger *logger;
 };
 } // namespace gkc
