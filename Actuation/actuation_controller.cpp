@@ -188,7 +188,7 @@ void ActuationController::steering_pid_thread_impl()
 
   while (!ThisThread::flags_get())
   {
-
+      
     if (movelessTime > 10)
       steering_pid.reset_integral_error(0.0);
     sensors.steering_output = static_cast<int32_t>(steering_pid.update(
@@ -214,16 +214,26 @@ void ActuationController::steering_pid_thread_impl()
     else
         sensors.steering_output += STEADY_STATE_CURRENT_MULT_NEG * (current_steering_cmd - 3.14);
     sensors.steering_output = clamp<float>(sensors.steering_output, MIN_STEER_CURRENT_MA, MAX_STEER_CURRENT_MA);
+
+    //ensure we are not going out of range anglewise
     if ((!rightLimitSwitch && sensors.steering_output < 0) || (!leftLimitSwitch && sensors.steering_output > 0)
     ||  (sensors.steering_rad > deg_to_rad<float,float>(MAX_STEER_DEG - VIRTUAL_LIMIT_OFF) && sensors.steering_output > 0) || 
-    (sensors.steering_rad < deg_to_rad<float,float>(MIN_STEER_DEG + VIRTUAL_LIMIT_OFF)  && sensors.steering_output < 0) ||
-    sensors.steering_speed > .5)
+   (sensors.steering_rad < deg_to_rad<float,float>(MIN_STEER_DEG + VIRTUAL_LIMIT_OFF)  && sensors.steering_output < 0))
+    
     {
       sensors.steering_output = 0;
       buffer_append_int32(&message[0], sensors.steering_output, &idx);
       CAN_STEER.write(CANMessage(VESC_RPM_ID(STEER_VESC_ID), &message[0],
                                   sizeof(message), CANData, CANExtended));
       steering_pid.reset_integral_error(0.0);
+    }
+    //limit the speed of steering output
+    else if(abs(sensors.steering_speed) > 1.5){
+        sensors.steering_output = 0;
+        buffer_append_int32(&message[0], sensors.steering_output, &idx);
+        CAN_STEER.write(CANMessage(VESC_RPM_ID(STEER_VESC_ID), &message[0],
+                                  sizeof(message), CANData, CANExtended));
+        steering_pid.reset_integral_error(0.0);
     }
     else
     {
