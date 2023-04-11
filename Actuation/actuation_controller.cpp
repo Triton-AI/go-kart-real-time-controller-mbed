@@ -26,20 +26,88 @@
 #include <utility>
 
 #define M_PI 3.14159265
+
+/**
+* 
+* @brief VESC CAN message ID generator functions
+* These functions generate the unique CAN message IDs for sending commands and requesting
+* information to/from VESC motor controllers. They are used in conjunction with the CAN protocol
+* to communicate with the VESC motor controllers.
+* @note For more information on communicating with VESC controllers with CAN, see
+* https://dongilc.gitbook.io/openrobot-inc/tutorials/control-with-can.
+* @param vesc_id The unique identifier of the VESC motor controller to communicate with
+* @return The unique CAN message ID for the specified VESC motor controller and message type
+*/
+
 #define VESC_RPM_EXTENDED_ID 0x03
 #define VESC_CURRENT_EXTENDED_ID 0x01
 #define VESC_STATUS_EXTENDED_ID 0x09
+
+/**
+* 
+* @brief Generate unique CAN message ID for RPM command
+* This function generates the unique CAN message ID for sending RPM commands to a VESC motor
+* controller with the specified identifier.
+* @param vesc_id The unique identifier of the VESC motor controller to send the RPM command to
+* @return The unique CAN message ID for sending the RPM command to the specified VESC motor controller
+*/
+
 static constexpr uint32_t VESC_RPM_ID(const uint32_t &vesc_id)
 {
   return (static_cast<uint32_t>(VESC_RPM_EXTENDED_ID) << sizeof(uint8_t) * 8) |
          static_cast<uint32_t>(vesc_id);
 }
+
+/**
+* 
+* @brief VESC CAN message ID generator functions
+* These functions generate the unique CAN message IDs for sending commands and requesting
+* information to/from VESC motor controllers. They are used in conjunction with the CAN protocol
+* to communicate with the VESC motor controllers.
+* @note For more information on communicating with VESC controllers with CAN, see
+* https://dongilc.gitbook.io/openrobot-inc/tutorials/control-with-can.
+* @param vesc_id The unique identifier of the VESC motor controller to communicate with
+* @return The unique CAN message ID for the specified VESC motor controller and message type
+*/
+
+/**
+* 
+* @brief Generate unique CAN message ID for RPM command
+* This function generates the unique CAN message ID for sending RPM commands to a VESC motor
+* controller with the specified identifier.
+* @param vesc_id The unique identifier of the VESC motor controller to send the RPM command to
+* @return The unique CAN message ID for sending the RPM command to the specified VESC motor controller
+*/
+static constexpr uint32_t VESC_RPM_ID(const uint32_t &vesc_id)
+{
+// The RPM command has an extended ID of 0x03, and the VESC ID is concatenated to form the
+// unique message ID.
+return (static_cast<uint32_t>(VESC_RPM_EXTENDED_ID) << sizeof(uint8_t) * 8) |
+static_cast<uint32_t>(vesc_id);
+}
+/**
+* 
+* @brief Generate unique CAN message ID for current command
+* This function generates the unique CAN message ID for sending current commands to a VESC motor
+* controller with the specified identifier.
+* @param vesc_id The unique identifier of the VESC motor controller to send the current command to
+* @return The unique CAN message ID for sending the current command to the specified VESC motor controller
+*/
 static constexpr uint32_t VESC_CURRENT_ID(const uint32_t &vesc_id)
 {
   return (static_cast<uint32_t>(VESC_CURRENT_EXTENDED_ID)
           << sizeof(uint8_t) * 8) |
          static_cast<uint32_t>(vesc_id);
 }
+
+/**
+* 
+* @brief Generate unique CAN message ID for status request
+* This function generates the unique CAN message ID for incoming status information from a
+* VESC motor controller with the specified identifier.
+* @param vesc_id The unique identifier of the VESC motor controller to get status information from
+* @return The unique CAN message ID for incoming status information from the specified VESC motor controller
+*/
 static constexpr uint32_t VESC_STATUS_ID(const uint32_t &vesc_id)
 {
   return (static_cast<uint32_t>(VESC_STATUS_EXTENDED_ID)
@@ -52,6 +120,17 @@ namespace tritonai
 namespace gkc
 {
 
+
+/**
+* 
+* @brief Clamp a value between a minimum and maximum range
+* This function takes a value and clamps it to a specified range between a minimum and maximum value.
+* @tparam T The type of the value to clamp (must be comparable with the < operator and support assignment)
+* @param val The value to clamp
+* @param min The minimum value of the range to clamp to
+* @param max The maximum value of the range to clamp to
+* @return The value clamped to the specified range between min and max
+*/
 template <typename T>
 constexpr T clamp(const T &val, const T &min, const T &max)
 {
@@ -69,49 +148,153 @@ constexpr T clamp(const T &val, const T &min, const T &max)
   }
 }
 
+//Deprecated function. It was uesed in the past with an old motror controller that came with the kart. It should not be used. Please test it code compieles deleting it and remove it. I dont want to remove any code as I can't test it.
 template <typename T>
 constexpr T non_linear_map(const T &val)
 {
   return (exp(val * val * val) - 1) / (exp(1) - 1);
 }
 
+
+/**
+* 
+* @brief Map a value from one range to another range
+* This function takes a value from a source range and maps it to a destination range. The input value is first
+* clamped to the source range between source_min and source_max. Then, it is linearly interpolated to a value
+* between 0 and 1, where 0 represents the minimum of the source range and 1 represents the maximum of the source range.
+* This normalized value is then linearly interpolated to a value between dest_min and dest_max, which represents
+* the corresponding value in the destination range. The resulting value is then returned.
+* @tparam S The type of the input source value to map (must be comparable with the < operator and support assignment)
+* @tparam D The type of the mapped output destination value (must support assignment)
+* @param source The input value to map to the destination range
+* @param source_min The minimum value of the source range
+* @param source_max The maximum value of the source range
+* @param dest_min The minimum value of the destination range
+* @param dest_max The maximum value of the destination range
+* @return The input value mapped to the destination range
+*/
 template <typename S, typename D>
 constexpr D map_range(const S &source, const S &source_min, const S &source_max,
                       const D &dest_min, const D &dest_max)
 {
+  // Clamp the input value to the source range between source_min and source_max
   float source_f = clamp<S>(source, source_min, source_max);
+
+  // Normalize the clamped value between 0 and 1 based on its position within the source range
   source_f = (source_f - source_min) / (source_max - source_min);
+
+  // Map the normalized value to the destination range
   return static_cast<D>(source_f * (dest_max - dest_min) + dest_min);
 }
 
+
+/**
+* 
+* @brief Convert an angle in degrees to radians
+* This function takes an angle in degrees and converts it to radians. The input angle is multiplied
+* by the constant M_PI/180.0 to obtain its equivalent in radians, and then cast to the output type.
+* @tparam S The type of the input angle in degrees (must support multiplication with a float)
+* @tparam D The type of the output angle in radians (must support assignment)
+* @param deg The input angle in degrees to convert to radians
+* @return The input angle converted to radians
+*/
 template <typename S, typename D>
 constexpr D deg_to_rad(const S &deg)
 {
   return static_cast<D>(deg * M_PI / 180.0);
 }
+
+
+/**
+* 
+* @brief Map steering angle to motor angle
+* This function maps the steering angle in radians to the corresponding motor angle in radians, based
+* on a predefined lookup table. The lookup table is a map between motor angles and steering angles,
+* obtained through empirical measurements of the relationship between the two angles. The function
+* finds the closest two entries in the map that bound the input steering angle and linearly interpolates
+* the motor angle between these two entries using the map_range() function. The resulting motor angle
+* is then returned.
+* 
+* This look up table is defined in config.hpp as STERING_MAPPTING
+* 
+* @param steer_angle The steering angle in radians to map to a motor angle
+* @return The corresponding motor angle in radians
+*/
 float map_steer2motor(float steer_angle)
 {
+  // Define the lookup table as a map between motor angles and steering angles
   std::map<float, float> mapping = STERING_MAPPTING;
 
+  // Save sign
   int sign = steer_angle >= 0 ? 1 : -1;
+
+  // Find the two entries in the map that bound the input steering angle and linearly interpolate between them
   for (auto it = mapping.begin(); it != mapping.end(); it++)
-    if ((std::next(it))->second >= sign * steer_angle)
+    if ((std::next(it))->second >= sign * steer_angle) //sign * steer_angle is abs(steer_angle)
       return sign * map_range<float, float>(sign * steer_angle, it->second, std::next(it)->second, it->first, std::next(it)->first);
+
+  // If the input steering angle is out of bounds of the look-up table, return 0
   return 0;
 }
+
+
+/**
+* 
+* @brief Map motor angle to steering angle
+* This function maps the motor angle in radians to the corresponding steering angle in radians, based
+* on a predefined lookup table. The lookup table is a map between motor angles and steering angles,
+* obtained through empirical measurements of the relationship between the two angles. The function
+* finds the closest two entries in the map that bound the input motor angle and linearly interpolates
+* the steering angle between these two entries using the map_range() function. The resulting steering
+* angle is then returned.
+* 
+* This look up table is defined in config.hpp as STERING_MAPPTING
+* 
+* @param motor_angle The motor angle in radians to map to a steering angle
+* @return The corresponding steering angle in radians
+*/
 float map_motor2steer(float motor_angle)
 {
   std::map<float, float> mapping = STERING_MAPPTING;
 
+  // Subtract pi (180) from the input motor angle. Actually it is because the neutral angle 0 is sometimes represented as 180 in the system. It is a bit of a mess. It is done because an encoder that was used was mounted so it had the point of overflow (where it goes from 0 to 360, or from 360 to 0) this point is in the opposite angle to nwutral, so neutras is actually represented as 180. What makes it more a mess is that this overflow point is also configurable by software. I'll try to explain all this better at some point.
   motor_angle -= M_PI;
+
+  // Determine the sign
   int sign = motor_angle >= 0 ? 1 : -1;
+
+  // Find the two entries in the map that bound the input motor angle and linearly interpolate
   for (auto it = mapping.begin(); it != mapping.end(); it++)
     if ((std::next(it))->first >= sign * motor_angle)
       return sign * map_range<float, float>(sign * motor_angle, it->first, std::next(it)->first, it->second, std::next(it)->second);
+
+  // If the input motor angle is out of bounds of the look-up table, return 0
   return 0;
 }
 
+/**
+ * @brief check if the kart is ready to drive
+ *
+ * So far the kart doesn't do any self checks before beeing ready to drive
+ * 
+ * TODO: It would be nice to have some automatic tests when starting the RTC. The kart would be rady to start untill tese tests are passed
+ *
+ * @return true if kart is ready to drive
+ * @return false if kart is not ready to drive
+ */
+
 bool ActuationController::is_ready() { return true; }
+
+
+/**
+ * @brief Fills the sesor packet with the latest sensor data
+ * 
+ * The populate_reading() function is called to populate a SensorGkcPacket with sensor information from the ActuationController. The SensorGkcPacket is used to send sensor data from the autonomous kart to the main computer.
+ *
+ * The function retrieves the sensor data from the ActuationSensors object, which is stored in the ActuationController. It then populates the corresponding fields in the SensorGkcPacket
+ *
+ * @param pkt GkcPacket that function populates with the latest sensor readings.
+ */
 
 void ActuationController::populate_reading(SensorGkcPacket &pkt)
 {
@@ -138,6 +321,27 @@ PidCoefficients steering_pid_coeff{STEER_P,
                                     MIN_STEER_CURRENT_MA,
                                     MAX_STEER_CURRENT_MA};
 
+
+/**
+ * @brief Construct a new Actuation Controller:: Actuation Controller object
+ * 
+ * @param logger The Actuation Controller uses a ponter to a logger to print the information, but instead of printing it sends the strings to the MRC which logs it and prints them if it is configured to do so.
+ * 
+ * 
+ * The ActuationController::ActuationController() function is the constructor of the ActuationController class. It initializes the class members and sets up the threads that will control the actuators and retrieve sensor data.
+ * 
+ * The constructor first calls the Watchable and ISensorProvider constructors to set up the interval for checking if the ActuationController is still operational and to declare the class as a sensor provider.
+ * 
+ * Next, the current_steering_cmd is initialized to the neutral steering angle, which is converted from degrees to radians using the deg_to_rad() function. The steering_pid object is also initialized using the steering_pid_coeff object declared just above, which contains the PID parameters defined in config.hpp.
+ * 
+ * The constructor initializes the logger object that is used for logging.
+ * 
+ * The function then sets up the limit switches by setting their mode to PullUp. This allows the limit switches to detect when the steering reaches the end of its range of motion.
+ * 
+ * The constructor then starts the threads that control the actuators and retrieve sensor data. The throttle_thread, steering_thread, steering_pid_thread, brake_thread, and sensor_poll_thread threads are started by calling their respective callback functions. These functions are defined in the ActuationController class and implement the logic for controlling the actuators and retrieving sensor data.
+ * 
+ */
+
 ActuationController::ActuationController(ILogger *logger)
     : Watchable(DEFAULT_ACTUATION_INTERVAL_MS,
                 DEFAULT_ACTUATION_LOST_TOLERANCE_MS),
@@ -160,10 +364,33 @@ ActuationController::ActuationController(ILogger *logger)
   // std::cout << "Actuation initialized" << std::endl;
 }
 
+/**
+ * @brief This is a function ran on a thread that runs continously to control the throttle actuator of the autonomous kart. It retrieves the desired throttle command from the throttle_cmd_queue and converts it to a command that can be sent to the VESC (motor controller) using the CAN bus.
+ * 
+ * The function first declares a float pointer cmd that will be used to store the retrieved command from the throttle_cmd_queue.
+ *
+ * Next, the function enters a while loop that runs continuously until the thread is killed. The flags_get() function is used to check if the thread has been signaled to stop.
+ *
+ * Inside the while loop, the function tries to retrieve a command from the throttle_cmd_queue using the try_get_for() function. This function waits for a specified amount of time for a command to be added to the queue. In this case, the function waits indefinitely until a command is received.
+ *
+ * Once a command is received, the function sets the current_throttle_cmd member variable to the received command, ensuring that it is within the maximum and minimum allowed values. The function then converts the command to a VESC command by dividing the command by the CONST_ERPM2MS constant. This conversion is required because the VESC motor controller uses ERPM (electrical revolutions per minute) values to control the motor.
+ *
+ * The function then deletes the cmd pointer and creates a message buffer to store the VESC current command. The buffer_append_int32() function is used to copy the VESC command to the message buffer.
+ *
+ * Finally, the function sends the message to the VESC using the CAN_THROTTLE.write() function. The message is sent as a CANMessage with the VESC_RPM_ID and THROTTLE_VESC_ID identifiers. CAN_THROTTLE is defined in config.hpp and can be the CAN1 or CAN2 ports.
+ *
+ * mbed CAN
+ * https://os.mbed.com/docs/mbed-os/v6.16/apis/other-driver-apis.html
+ *
+ * VESC CAN
+ * https://dongilc.gitbook.io/openrobot-inc/tutorials/control-with-can
+ *
+ */
+
 void ActuationController::throttle_thread_impl()
 {
   float *cmd;
-  while (!ThisThread::flags_get())
+  while (!ThisThread::flags_get()) //Forever until thread is killed
   {
     throttle_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
     current_throttle_cmd = clamp<float>(*cmd, -MAX_THROTTLE_MS, MAX_THROTTLE_MS);
@@ -177,6 +404,16 @@ void ActuationController::throttle_thread_impl()
   }
 }
 
+/**
+ * @brief The ActuationController::steering_pid_thread_impl() function is a thread that runs in the background to control the steering actuator of the autonomous kart using a PID controller. It retrieves the desired steering command from the current_steering_cmd member variable and calculates the necessary output for the steering PID controller. The function also checks for limit switches, adds a constant to the motor output proportional to the displacement from the center, and checks if it has been without power.
+ *
+ * It uses current_steering_cmd as the angle (in rad) the sttering motor needs to achieve. Note that is the angle of the motor, not the angle the wheels make.
+ *
+ * The MRC commands the steering position as the angles of the wheels, but ActuationController::steering_thread_impl() already takes care of this conversion using the map_steer2motor() function. This conversion is defined in config.hpp as STERING_MAPPTING
+ *
+ * 
+ */
+
 void ActuationController::steering_pid_thread_impl()
 {
   ThisThread::sleep_for(std::chrono::milliseconds(1000));
@@ -186,13 +423,16 @@ void ActuationController::steering_pid_thread_impl()
   static int movelessTime = 0;
   static double lastMeasurement, lastControll;
 
-  while (!ThisThread::flags_get())
+  while (!ThisThread::flags_get()) //Forever until thread is killed
   {
-      
+    //If it hasn't been mooving lately reset the integral of the PID. (this prevents the PID integral accumulating a lot when the emergecy stop is active. The isue was that when the emergency stop was deactivated and the kart active, because of the acumulated integral error the stering would swing very hard to one side)
     if (movelessTime > 10)
       steering_pid.reset_integral_error(0.0);
+    
     sensors.steering_output = static_cast<int32_t>(steering_pid.update(
         current_steering_cmd - sensors.steering_rad + 2 * M_PI * sensors.steering_wraps, PID_INTERVAL_MS / 1000.0));
+
+    //increment the not moving time if necesary
     if (abs(sensors.steering_rad - lastMeasurement) > deg_to_rad<float, float>(STEER_DEADBAND_DEG))
       movelessTime = 0;
     else
@@ -200,26 +440,27 @@ void ActuationController::steering_pid_thread_impl()
 
     lastMeasurement = sensors.steering_rad;
     lastControll = current_steering_cmd;
-    //std::cout << current_steering_cmd << endl;
-    if (abs(sensors.steering_rad - current_steering_cmd) <
-        deg_to_rad<float, float>(STEER_DEADBAND_DEG))
+
+    //if steering is in position reset integlal error of the PID
+    if (abs(sensors.steering_rad - current_steering_cmd) < deg_to_rad<float, float>(STEER_DEADBAND_DEG))
     {
       steering_pid.reset_integral_error(0.0);
       sensors.steering_output = 0;
     }
     uint8_t message[4] = {0, 0, 0, 0};
     int32_t idx = 0;
+
+    //Add a constant to the motor output proportional to the displacement from the center. (The kart is heavy, so it needs force to keed the steering held on a side. This helps with this. It should be 0 if the kart is in the air as this force is not present in that situation)
     if (current_steering_cmd - 3.14 > 0)
         sensors.steering_output += STEADY_STATE_CURRENT_MULT_POS * (current_steering_cmd - 3.14);
     else
         sensors.steering_output += STEADY_STATE_CURRENT_MULT_NEG * (current_steering_cmd - 3.14);
     sensors.steering_output = clamp<float>(sensors.steering_output, MIN_STEER_CURRENT_MA, MAX_STEER_CURRENT_MA);
 
-    //ensure we are not going out of range anglewise
+    //Check if the steeting is out of range with the limit switches
     if ((!rightLimitSwitch && sensors.steering_output < 0) || (!leftLimitSwitch && sensors.steering_output > 0)
     ||  (sensors.steering_rad > deg_to_rad<float,float>(MAX_STEER_DEG - VIRTUAL_LIMIT_OFF) && sensors.steering_output > 0) || 
    (sensors.steering_rad < deg_to_rad<float,float>(MIN_STEER_DEG + VIRTUAL_LIMIT_OFF)  && sensors.steering_output < 0))
-    
     {
       sensors.steering_output = 0;
       buffer_append_int32(&message[0], sensors.steering_output, &idx);
@@ -241,8 +482,7 @@ void ActuationController::steering_pid_thread_impl()
       CAN_STEER.write(CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0],
                                   sizeof(message), CANData, CANExtended));
     }
-    //std::cout << sensors.steering_output << endl;
-    ThisThread::sleep_for(pid_interval);
+    ThisThread::sleep_for(pid_interval); //Sleep for PID_INTERVAL_MS (defined at config.hpp)
   }
   
 }
@@ -251,13 +491,11 @@ void ActuationController::steering_thread_impl()
 {
   ThisThread::sleep_for(std::chrono::milliseconds(1000));
   float *cmd;
-  while (!ThisThread::flags_get())
+  while (!ThisThread::flags_get()) //Forever until thread is killed
   {
     steering_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
     *cmd = clamp<float>(*cmd, deg_to_rad<float, float>(MIN__WHEEL_STEER_DEG), deg_to_rad<float, float>(MAX__WHEEL_STEER_DEG));
-    //std::cout << "the clamped value is " << *cmd << std::endl;
     *cmd = map_steer2motor(*cmd) + M_PI;
-    // std::cout << "the mottor value is " << *cmd << std::endl << std::endl;
     *cmd = clamp<float>(*cmd, deg_to_rad<float, float>(MIN_STEER_DEG), deg_to_rad<float, float>(MAX_STEER_DEG));
     current_steering_cmd = *cmd;
     delete cmd;
@@ -279,7 +517,7 @@ void ActuationController::brake_thread_impl()
   float *cmd;
   uint16_t brake_output = 0;
 
-  while (!ThisThread::flags_get())
+  while (!ThisThread::flags_get()) //Forever until thread is killed
   {
     brake_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
     current_brake_cmd = clamp<float>(*cmd, 0.0, 1.0);
@@ -306,7 +544,7 @@ void ActuationController::sensor_poll_thread_impl()
         VESC_STATUS_ID(THROTTLE_VESC_ID), 0x0001, CANExtended);
     previous_time = us_ticker_read();
     current_time = us_ticker_read();
-    while (!ThisThread::flags_get())
+    while (!ThisThread::flags_get()) //Forever until thread is killed
     {
         static float oldWrap;
         float oldRad = sensors.steering_rad;

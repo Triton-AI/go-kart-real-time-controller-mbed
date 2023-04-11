@@ -36,6 +36,23 @@ struct ActuationSensors {
   int32_t steering_output = 0;
 };
 
+/**
+ * @brief
+ * 
+ * The ActuationController class is responsible for controlling the actuators of the autonomous kart. It provides an interface to control the throttle, steering, and brake by setting the desired commands using the set_throttle_cmd(), set_steering_cmd(), and set_brake_cmd() functions. The current values of the commands can be obtained using the get_throttle_cmd(), get_steering_cmd(), and get_brake_cmd() functions.
+ *
+ * The ActuationController class inherits from two other classes, Watchable and ISensorProvider. Watchable implements things for the watchdog, but I think it is only partly implemented. ISensorProvider requires the implementation of the populate_reading() function, which is used to populate a SensorGkcPacket with sensor information.
+ *
+ * The class uses three queues, one for each actuator, to store the desired commands. The throttle_thread_impl(), steering_thread_impl(), steering_pid_thread_impl(), and brake_thread_impl() functions are executed continuously and in parallel in different threads. These functions retrieve the commands from the queues and transform them into commands for the actuators.
+ *
+ * The ActuationController class also includes a sensor_poll_thread_impl() function that retrieves sensor data and stores it in the ActuationSensors object. This data can then be used in the populate_reading() function to populate a SensorGkcPacket with the sensor information.
+ *
+ * The ActuationController class includes a PidController object for the steering actuator, which can be used to implement a PID loop to achieve precise control of the steering.
+ *
+ * Finally, the ActuationController class includes an ILogger object that is used for logging.
+ */
+
+
 class ActuationController : public Watchable, public ISensorProvider {
 public:
   explicit ActuationController(ILogger *logger);

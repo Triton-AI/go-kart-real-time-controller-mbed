@@ -127,13 +127,14 @@
 // PWM steering encoder
 #define STEER_ENCODER_PIN PC_7
 
-// motor angle - left wheel - right wheel - average
+// motor angle - left wheel - right wheel - average (in degrees)
 // 0	0	0	0
 // 30	8	10	9
 // 50	9	15	12
 // 70	12	22	17
 // 80	10	30	20
 
+//(in radians)
 #define STERING_MAPPTING    {{0, 0,},\
                             {0.523599, 0.15708,},\
                             {0.872665, 0.20944,},\
