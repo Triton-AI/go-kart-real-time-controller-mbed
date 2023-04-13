@@ -8,15 +8,22 @@
  * @copyright Copyright 2022 Triton AI
  *
  */
-
+//Include RCController header file
 #include "RCController.hpp"
+//Include communication configuration header file
+//config.hpp defines some communication parameters,Watchdog parameters and allocates throttle, braking and steering to specific CAN busses.
+//Currently set to UART Serial
 #include "config.hpp"
+
+//Define PWM inputs for signals from steering, throttle and duty cycle
 PwmIn steer(Steer_Pin); 
 PwmIn throttle(Throttle_Pin);
 PwmIn red(Red_Pin);
 
 namespace tritonai {
 namespace gkc{
+
+//Initalize RCController class
     RCController::RCController(){
 
         cont_p = new Controller();
@@ -25,7 +32,7 @@ namespace gkc{
         sensor_write.start(callback(this,&RCController::getSensor));
         rolling_average = 0;
     }
-
+    //Gets PWM 
     void RCController::getSensor(){
         bool isRC = true;
         time_t secondsOG = time(NULL);

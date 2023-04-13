@@ -7,6 +7,7 @@
  *
  * @copyright Copyright 2022 Triton AI
  *
+ *
  */
 
 #include "controller.hpp"
@@ -19,6 +20,8 @@ namespace gkc{
 
 struct Translation {
 
+//The steering function takes in the steering duty cycle with float precision and returns the steering angle in Radians
+//This may be a good place to implement the limit switch
 float Steering(float Steering_Duty) {
      //50 degree maximum left and right
      double Steering_Ang;
@@ -29,6 +32,7 @@ float Steering(float Steering_Duty) {
      else if(Steering_Duty >= 0.151) Steering_Ang = a * (Steering_Duty-0.151);
 
     //ensure that Steering angle does not exceed 50 degrees
+    //Max and Min steering angles are set to +- 20deg in config.hpp header file
      if(Steering_Ang > MAX__WHEEL_STEER_DEG) Steering_Ang = MAX__WHEEL_STEER_DEG;
      if(Steering_Ang <MIN__WHEEL_STEER_DEG) Steering_Ang = MIN__WHEEL_STEER_DEG;
      if ( -1 < Steering_Ang && Steering_Ang < 1 ) Steering_Ang = 0.0;
@@ -40,6 +44,7 @@ float Steering(float Steering_Duty) {
     //return Steering_Duty;
 }
 
+//The trigger function takes in the trigger duty cycle and returns percentage of throttle output.
 float Trigger(float Trigger_Duty){   //2000x-300=y
     float throttle;
     if (Trigger_Duty <= 0.151) throttle = 0.0;
@@ -53,6 +58,8 @@ float Trigger(float Trigger_Duty){   //2000x-300=y
     return throttle;
 }
 
+//Red is a boolean function that checks the range of the dutycycle argument
+//if Red_Duty is not between 19% and 25% the return is false
 bool Red(float Red_Duty){
     if (Red_Duty >= 0.19 && Red_Duty < .25) return true;
     else return false;
@@ -61,13 +68,15 @@ bool Red(float Red_Duty){
 };
 
 class RCController{
+//The following functions can be used outside the RCController class
 public:
     RCController();
     void getSensor();
-
+//The following attributes(variables) can only be uned in the RCController class
 private:
     float rolling_average;
     Controller* cont_p;
+
     PwmIn* steerVal;
     PwmIn* throttleVal;
     PwmIn* switchVal;
