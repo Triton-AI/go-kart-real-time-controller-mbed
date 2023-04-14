@@ -7,12 +7,16 @@
  *
  * @copyright Copyright 2022 Triton AI
  *
+ * This header file defines classes and functions for reading sensor data
+ * sensorReader has member functions that can allocate and remove ISensorProvider objects.
+ * Mutexs are used to block and allow access to the providers
+ *
  */
-
+//Check if Header has already been created
 #ifndef SENSOR_READER_HPP_
 #define SENSOR_READER_HPP_
 #include "Mutex.h"
-#include "config.hpp"
+#include "config.hpp"//Header file containing communication and watchdog parameters and allocates CAN busses for Throttle, brakaing and steering
 #include "gkc_packets.hpp"
 #include "watchable.hpp"
 #include <chrono>
@@ -25,7 +29,11 @@ namespace gkc {
 class ISensorProvider {
 public:
   ISensorProvider() {}
+  //is_ready os a boolean function that indicates
+  //whether the sensor is ready to be read
   virtual bool is_ready() = 0;
+  //populate_reading "populates" the SensorGkcPacket
+  // with sensor data a the address of pkt
   virtual void populate_reading(SensorGkcPacket &pkt) = 0;
 };
 
@@ -35,6 +43,7 @@ public:
   void register_provider(ISensorProvider *provider);
   void remove_provider(ISensorProvider *provider);
   const SensorGkcPacket &get_packet() const { return pkt_; }
+  //populates poll_interval with millisecond value in val.
   void set_poll_interval(std::chrono::milliseconds val) {
     poll_interval_ = val;
   }

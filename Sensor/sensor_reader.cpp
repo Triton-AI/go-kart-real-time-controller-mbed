@@ -7,6 +7,12 @@
  *
  * @copyright Copyright 2022 Triton AI
  *
+ * This CPP file defines the funcionality of
+ * the SensorReader class from Sensor_reader.hpp.
+ * This class "polls" or takes in data from various sensors and updates
+ * the sensorGkcPacket object. The register_provider() function adds a sensor
+ * while removeProvider() will remove a sensor from the list of readings.
+ * This file is a way to read sensor data form multiple sources at a regular interval
  */
 
 #include "sensor_reader.hpp"
@@ -36,6 +42,7 @@ void SensorReader::sensor_poll_thread_impl() {
       }
     }
     providers_lock_.unlock();
+    //Waits for a time specified by poll_interval
     ThisThread::sleep_for(poll_interval_);
   }
 }

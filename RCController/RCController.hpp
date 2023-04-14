@@ -1,12 +1,17 @@
 /**
- * @file controller.cpp
+ * @file RController.cpp
  * @author Jesus Fausto (jvfausto@ucsd.edu)
  * @brief
  * @version 0.1
  * @date 2022-07-17
  *
  * @copyright Copyright 2022 Triton AI
- *
+ * This header file id used for communication with an RC controller.
+ * The initial struct defines functions for converting PWM duty cycles into
+ * a percentage of maximum throttle. Steering() converts a duty cycle into radians
+ * using PI. Trigger() takes a PWM and converts it into the %of max throttle.
+ * Red() is a boolean checks to see in an input duty cycle is within a certain range
+ * If not, Red() returns false.
  *
  */
 
@@ -48,9 +53,9 @@ float Steering(float Steering_Duty) {
 float Trigger(float Trigger_Duty){   //2000x-300=y
     float throttle;
     if (Trigger_Duty <= 0.151) throttle = 0.0;
-   
+
     else throttle = (2000 * Trigger_Duty) - 300;
-   
+
     if(throttle > 100) throttle = 100;
 
     throttle = throttle/100; //added this new line after leaving lab
@@ -73,14 +78,19 @@ public:
     RCController();
     void getSensor();
 //The following attributes(variables) can only be uned in the RCController class
+//
 private:
     float rolling_average;
+    //Pointer to a controller object
     Controller* cont_p;
-
+    //Pointers to PWM objects for Steering,throttle and switch inputs
     PwmIn* steerVal;
     PwmIn* throttleVal;
     PwmIn* switchVal;
 
+    // Thread for reading sensors
+    // By creating multiple thread objects,
+    // you can run multiple tasks concurrently within a program.
     Thread sensor_write;
     Translation Map;
 };
