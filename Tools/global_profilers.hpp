@@ -13,6 +13,7 @@
 
 namespace tritonai {
 namespace gkc {
+// Defines global profilers for each section of the code (Control, Sensor, Comm)
 Profiler COMM_PROFILER("Comm");
 Profiler CONTROL_PROFILER("Control");
 Profiler Sensor_PROFILER("Sensor");
