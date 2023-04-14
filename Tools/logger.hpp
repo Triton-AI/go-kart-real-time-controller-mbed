@@ -15,9 +15,16 @@
 
 namespace tritonai {
 namespace gkc {
+/**
+ * @brief Logger interface
+ * Abstract class for logger, allowing one to implement different loggers
+ * of different severities and destinations.
+ * 
+ */
 class ILogger {
 public:
   ILogger() {}
+  // sends a log packet to the logger with the given severity and message
   virtual void send_log(const LogPacket::Severity &severity,
                         const std::string &what) = 0;
 };
