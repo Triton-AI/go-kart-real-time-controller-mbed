@@ -18,6 +18,8 @@
 
 namespace tritonai {
 namespace gkc {
+
+// The possible results of a state transition
 enum StateTransitionResult {
   SUCCESS = 0,
   FAILURE = 1,
@@ -27,6 +29,14 @@ enum StateTransitionResult {
 };
 
 class GkcStateMachine {
+/**
+ * @brief GkcStateMachine constructor
+ * Constructs a GkcStateMachine object, which has the methods for transitioning
+ * between states of the GkcLifecycle. The GkcStateMachine class is an abstract
+ * class, and the methods on_initialize, on_deactivate, on_activate, 
+ * on_shutdown, on_emergency_stop, and on_reinitialize must be implemented 
+ * by the child class.
+ */
 public:
   GkcStateMachine();
 
@@ -39,6 +49,9 @@ public:
 
   GkcLifecycle get_state() const;
 
+// The methods on_initialize, on_deactivate, on_activate, on_shutdown,
+// on_emergency_stop, and on_reinitialize 
+//must be implemented by the child class.
 protected:
   virtual StateTransitionResult
   on_initialize(const GkcLifecycle &last_state) = 0;
@@ -56,6 +69,7 @@ protected:
   virtual StateTransitionResult
   on_reinitialize(const GkcLifecycle &last_state) = 0;
 
+// The current state of the state machine
 private:
   GkcLifecycle state_ {GkcLifecycle::Uninitialized};
 };
