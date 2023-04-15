@@ -43,17 +43,6 @@
 #define VESC_CURRENT_EXTENDED_ID 0x01
 #define VESC_STATUS_EXTENDED_ID 0x09
 
-/**
-* 
-* @brief VESC CAN message ID generator functions
-* These functions generate the unique CAN message IDs for sending commands and requesting
-* information to/from VESC motor controllers. They are used in conjunction with the CAN protocol
-* to communicate with the VESC motor controllers.
-* @note For more information on communicating with VESC controllers with CAN, see
-* https://dongilc.gitbook.io/openrobot-inc/tutorials/control-with-can.
-* @param vesc_id The unique identifier of the VESC motor controller to communicate with
-* @return The unique CAN message ID for the specified VESC motor controller and message type
-*/
 
 /**
 * 
@@ -277,6 +266,10 @@ bool ActuationController::is_ready() { return true; }
  * The populate_reading() function is called to populate a SensorGkcPacket with sensor information from the ActuationController. The SensorGkcPacket is used to send sensor data from the autonomous kart to the main computer.
  *
  * The function retrieves the sensor data from the ActuationSensors object, which is stored in the ActuationController. It then populates the corresponding fields in the SensorGkcPacket
+ * 
+ * This function has to be devine as ActuationController inherits from ISensorProvider. ISensorProvider will be calling this function to get the latest sensor data.
+ *
+ * sensors sctruct is filled with the latest infromation by the function ActuatorCaontroller::sensor_poll_thread_impl() which is running continously on a thread
  *
  * @param pkt GkcPacket that function populates with the latest sensor readings.
  */
@@ -401,6 +394,8 @@ void ActuationController::throttle_thread_impl()
 
 void ActuationController::steering_pid_thread_impl()
 {
+
+  // Wait for 1 second before starting to allow the rest of the system to initialize
   ThisThread::sleep_for(std::chrono::milliseconds(1000));
   static constexpr std::chrono::milliseconds pid_interval(
       static_cast<uint32_t>(PID_INTERVAL_MS));
@@ -472,8 +467,24 @@ void ActuationController::steering_pid_thread_impl()
   
 }
 
+
+/**
+* 
+* @brief Implementation of the steering control thread
+* This function is the implementation of the thread steering_thread. It only sets the current steering command
+* variable(current_steering_cmd) based on the incoming messages from the MRC.
+* The function retrieves the command from the steering command queue, maps it to the appropriate motor angle,
+* and sets the current steering command (current_steering_cmd) to the mapped value.
+* The function also clamps the command to prevent it from exceeding the maximum and minimum
+* allowable steering angles.
+*
+* The steering_pid_thread_impl() is going to be using the current_steering_cmd as the target position for the
+* steering motor and it is going to achieve the possition with a PID controller feedback loop.
+*/
+
 void ActuationController::steering_thread_impl()
 {
+  // Wait for 1 second before starting to allow the rest of the system to initialize
   ThisThread::sleep_for(std::chrono::milliseconds(1000));
   float *cmd;
   while (!ThisThread::flags_get()) //Forever until thread is killed
@@ -487,16 +498,35 @@ void ActuationController::steering_thread_impl()
   }
 }
 
+
+/**
+* 
+* @brief Implementation of the brake control thread
+* This function is the implementation of the thread that sets the brake possition based on
+* incoming messages from the MRC. The function retrieves the command from the brake command queue,
+* maps it to the appropriate brake output value, and sends the brake command message to the
+* brake motor controller over the CAN bus. The function also clamps the command to prevent it from
+* exceeding the maximum and minimum allowable brake values.
+* 
+* The expected incoming message is between 0 and 1 because it means the linear actuator is 0% to 100% exteded.
+* MAX_BRAKE_VAL should be the maximum distance the linear actuator can be extended and any further command won't
+* be able to extend it more. This should vary depending on how the actuator is mounted.
+* 
+* The actuator uses a very strange encoding for the message. Here it is summary, but for more details you should
+* look the actuator datasheet.
+*  CAN frame format:
+*  |       Byte 1      |           Byte 2            |
+*  | 8 LSB of position | CE | ME | 5 MSB of position |
+*   
+*  CE enable actuator clutch (free move vs. motor engaged)
+*  ME enable actuator motor
+*  5 MSB of position in byte 2 occupies its 5 LSB
+*  Position has a total of 8 + 5 = 13 bits so it has a range of (0 - 8192) and 1000 means 1 inch on the linear actuator
+*/
+
 void ActuationController::brake_thread_impl()
 {
-  // CAN frame format
-  // |       Byte 1      |           Byte 2            |
-  // | 8 LSB of position | CE | ME | 5 MSB of position |
-  //
-  // CE: enable actuator clutch (free move vs. motor engaged)
-  // ME: enable actuator motor
-  // 5 MSB of position in byte 2 occupies its 5 LSB
-  // Position has a total of 8 + 5 = 13 bits (0 - 8192). 1000 = 1 inch
+  // Wait for 1 second before starting to allow the rest of the system to initialize
   ThisThread::sleep_for(std::chrono::milliseconds(1000));
   static unsigned char message[8] = {0x0F, 0x4A, 0x00, 0xC0, 0, 0, 0, 0};
   float *cmd;
@@ -509,34 +539,77 @@ void ActuationController::brake_thread_impl()
     delete cmd;
     brake_output = map_range<float, uint16_t>(current_brake_cmd, 0.0, 1.0,
                                               MIN_BRAKE_VAL, MAX_BRAKE_VAL);
-    message[2] = brake_output & 0xFF;
-    message[3] = 0xC0 | ((brake_output >> 8) & 0x1F);
-    CAN_BRAKE.write(CANMessage(0x00FF0000, message, 8, CANData, CANExtended));
+    message[2] = brake_output & 0xFF; //get the LSB on byte 2
+    message[3] = 0xC0 | ((brake_output >> 8) & 0x1F); //get the 5 MSB on the right of byte 3 and 0x0C enable cluthc and actuator motor. Search for bitwise operators to see how this works.
+
+    CAN_BRAKE.write(CANMessage(0x00FF0000, message, 8, CANData, CANExtended)); //0x00FF0000 is the CAN ID for the linear actuator
   }
 }
 
+/**
+* 
+* @brief Implementation of the sensor poll thread.
+* This function is the implementation of the thread sensor_poll_thread. Its main objective is to
+* read the sensors and update the values of the sensors struct. The sensor struct is later used
+* by the other parts of the ActuatorController class. (steering_pid_thread_impl and populate_reading)
+* Sets the poll interval to DEFAULT_SENSOR_POLL_INTERVAL_MS.
+* It also sets up a filter to receive VESC_STATUS_ID messages from the throttle VESC, which is needed
+* for can.read().
+* 
+* The function then enters a loop where it reads the steering angle from the encoder, the steering speed and
+* the motor speed from the VESC.
+* 
+* For the steering angle it converts it to radiands, applies a calibration offset and wraps the angle to [0, 2*pi)
+* in order to set the 180 degree point at the neutral steering position by software.
+* If the steering angle has wrapped around, the function updates the number of wraps in the sensors struct.
+*
+* The function then calculates the steering speed using the steering angle difference and time difference.
+* 
+* The function reads the motor data from a VESC_STATUS_ID message from the CAN bus and sets the
+* values of the sensors struct.
+*
+* Finally, the function sleeps for the poll interval before repeating the loop.
+*
+* TODO: 1. Check how necessary it is to handle steering angle wrapping around. 2. Revise the has_moved variable to make it less confusing and more robust. 3. Clarify what data it is getting from the VESC.
+* @return void
+*/
+
 void ActuationController::sensor_poll_thread_impl()
 {
+    // Declare some variables and wait for 1 second to allow everything to settle
     static long long current_time;
     static long long previous_time;
     bool has_moved = false;
     double radDiff, radSpeed;
     static long timeDiff;
     ThisThread::sleep_for(std::chrono::milliseconds(1000));
+    // Set the poll interval to DEFAULT_SENSOR_POLL_INTERVAL_MS. This defines the frecuency the sensors are read.
     static constexpr std::chrono::milliseconds poll_interval{
         DEFAULT_SENSOR_POLL_INTERVAL_MS};
+    // Set up a filter to receive VESC_STATUS_ID messages from the throttle VESC. Needed for can.read()
     static const auto throttle_vesc_status_filter = CAN_THROTTLE.filter(
         VESC_STATUS_ID(THROTTLE_VESC_ID), 0x0001, CANExtended);
+
+    // Set the current and previous time to the current time
     previous_time = us_ticker_read();
     current_time = us_ticker_read();
     while (!ThisThread::flags_get()) //Forever until thread is killed
     {
         static float oldWrap;
+        // oldRad is used to calculate the steering speed
         float oldRad = sensors.steering_rad;
+
+        // Get the steering angle from the encoder and convert it to radians
         float newRad = steer_encoder.dutycycle();
         newRad = map_range<float, float>(newRad, 0.0, 1.0, 0.0, 2 * M_PI);
+        //Apply a calibration offset and wrap the angle to [0, 2*pi). It is a way to set the 180 degree point at the neutral steering position by software
         newRad = fmod(newRad + deg_to_rad<float, float>(STEERING_CAL_OFF), 2 * M_PI);
         //std::cout << newRad << std::endl;
+
+
+        // Check if the steering angle has wrapped around and update the number of wraps
+        // Setting the neutral position to 180 should prevent this from being needed
+        // TODO: check how necessary this is
         if ((newRad < M_PI / 4 && sensors.steering_rad > 7 * M_PI / 4) ||
             (sensors.steering_rad < M_PI / 4 && newRad > 7 * M_PI / 4))
         {
@@ -549,21 +622,24 @@ void ActuationController::sensor_poll_thread_impl()
             else
             sensors.steering_wraps = 0;
         }
+
+        // Set the steering angle in the sensors struct
         sensors.steering_rad = newRad;
+
+        // Calculate the steering speed if the steering has moved
+        // TODO: has_moved is confusing. Right now it is only used to skip the speed calculation the first time the loop is run. It could be completetly implemented to detect if it has moved, it could be renamed to a different thing, or the same behaviour could be implemented differently.
         current_time = us_ticker_read();
         if(has_moved){
             radDiff = oldRad - newRad;
             timeDiff = current_time - previous_time;
-            sensors.steering_speed = pow(10,6)*radDiff/timeDiff;
+            sensors.steering_speed = pow(10,6)*radDiff/timeDiff; //pow(10, 6) is there to change the units from us to s
             //std::cout << radSpeed << std::endl;
         }
         if(!has_moved)
             has_moved = true;
         previous_time = current_time;
-        // sensors.steering_rad = steer_encoder.dutycycle();
-        // sensors.steering_rad = map_range<float, float>(sensors.steering_rad, 0.0, 1.0, 0.0, 2 * M_PI);
-        // sensors.steering_rad = fmod(sensors.steering_rad + deg_to_rad<float, float>(STEERING_CAL_OFF), 2 * M_PI);
 
+        // Read the motor data from a VESC_STATUS_ID message from the CAN bus. rr and rl mean rear right and rear left. But I'm not sure if it is reading position of speed from the throttle.
         CANMessage throttle_vesc_status_msg;
         if (CAN_THROTTLE.read(throttle_vesc_status_msg,
                                 throttle_vesc_status_filter))
@@ -573,6 +649,8 @@ void ActuationController::sensor_poll_thread_impl()
                 buffer_get_float32(&throttle_vesc_status_msg.data[0], 1.0, &idx);
             sensors.rr_rad = sensors.rl_rad;
         }
+
+
         ThisThread::sleep_for(poll_interval);
     }
 }
