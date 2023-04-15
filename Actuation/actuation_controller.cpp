@@ -45,21 +45,6 @@
 
 /**
 * 
-* @brief Generate unique CAN message ID for RPM command
-* This function generates the unique CAN message ID for sending RPM commands to a VESC motor
-* controller with the specified identifier.
-* @param vesc_id The unique identifier of the VESC motor controller to send the RPM command to
-* @return The unique CAN message ID for sending the RPM command to the specified VESC motor controller
-*/
-
-static constexpr uint32_t VESC_RPM_ID(const uint32_t &vesc_id)
-{
-  return (static_cast<uint32_t>(VESC_RPM_EXTENDED_ID) << sizeof(uint8_t) * 8) |
-         static_cast<uint32_t>(vesc_id);
-}
-
-/**
-* 
 * @brief VESC CAN message ID generator functions
 * These functions generate the unique CAN message IDs for sending commands and requesting
 * information to/from VESC motor controllers. They are used in conjunction with the CAN protocol
