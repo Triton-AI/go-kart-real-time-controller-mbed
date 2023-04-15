@@ -31,6 +31,8 @@
 #define UART_TX_PIN PC_12
 //#define UART_RX_PIN PE_7
 //#define UART_TX_PIN PE_8
+#define REMOTE_UART_TX_PIN PE_0
+#define REMOTE_UART_RX_PIN PE_1
 
 // Generic comm settings
 #define RECV_BUFFER_SIZE 32
