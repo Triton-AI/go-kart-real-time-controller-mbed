@@ -30,6 +30,16 @@
 
 namespace tritonai {
 namespace gkc {
+
+/**
+ * @brief
+ *
+ * The Controller class is responsible for performing a function when a specific command is received from the MRC.
+ *
+ * Each message type has its own `packet_callback()` function.
+ * 
+ * For example, `packet_callback(const ControlGkcPacket &packet)` responds to a control command from the MRC.
+ */
 class Controller : public GkcStateMachine,
                    public GkcPacketSubscriber,
                    public Watchable,

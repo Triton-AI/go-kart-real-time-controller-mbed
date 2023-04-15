@@ -62,6 +62,10 @@ Controller::Controller()
   // std::cout << "Controller class initialized" << std::endl;
 }
 
+/**
+ *
+ * @brief This function would be called when the watchdog timer expires.
+ */
 void Controller::watchdog_callback() {
   // std::cout << "Controller watchdog triggered" << std::endl;
   if (get_state() != GkcLifecycle::Uninitialized &&
@@ -70,6 +74,12 @@ void Controller::watchdog_callback() {
   }
 }
 
+/**
+ *
+ * @brief One of the packet callback functions.
+ * This one sends a HandShake1 Packet to the MRC.
+ * @param pkt GkcPacket for HandShake1
+ */
 void Controller::packet_callback(const Handshake1GkcPacket &packet) {
   // std::cout << "Handshake received" << std::endl;
   if (get_state() == GkcLifecycle::Uninitialized) {
@@ -87,6 +97,12 @@ void Controller::packet_callback(const Handshake2GkcPacket &packet) {
            "Handshake #2 received which should not be sent to MCU. Ignoring.");
 }
 
+/**
+ *
+ * @brief One of the packet callback functions.
+ * This one creates a packet with the firmware version and sends it to the MRC.
+ * @param pkt GkcPacket for firmware
+ */
 void Controller::packet_callback(const GetFirmwareVersionGkcPacket &packet) {
   FirmwareVersionGkcPacket pkt;
   pkt.major = GkcPacketLibVersion::MAJOR;
@@ -95,12 +111,25 @@ void Controller::packet_callback(const GetFirmwareVersionGkcPacket &packet) {
   comm_.send(pkt);
 }
 
+/**
+ *
+ * @brief One of the packet callback functions.
+ * This one receives a firmware version and logs that its not the sender's responsibility.
+ * @param pkt FirmwareVersionGkcPacket for firmware
+ */
 void Controller::packet_callback(const FirmwareVersionGkcPacket &packet) {
   send_log(LogPacket::Severity::WARNING,
            "Firmware version received, but checking version is PC's "
            "responsibility. Ignoring.");
 }
 
+/**
+ *
+ * @brief One of the packet callback functions.
+ * This one determines if the RTC can be reset. It will only be reset
+ * if the the "magic number" or password matches.
+ * @param pkt packet that tells to reset
+ */
 void Controller::packet_callback(const ResetMcuGkcPacket &packet) {
   if (get_state() != GkcLifecycle::Uninitialized) {
     send_log(LogPacket::Severity::WARNING,
@@ -125,6 +154,7 @@ void Controller::packet_callback(const HeartbeatGkcPacket &packet) {
   }
   last_count = packet.rolling_counter;
 }
+
 
 void Controller::packet_callback(const ConfigGkcPacket &packet) {
   initialize_thread.start(
