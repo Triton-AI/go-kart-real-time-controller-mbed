@@ -7,6 +7,6 @@ mbed-os
 BUILD
 
 # External Library
-External/**
+#External/**
 !/**/.gitkeep
-PwmIn
+#PwmIn
