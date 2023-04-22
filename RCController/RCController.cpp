@@ -23,11 +23,11 @@
 //config.hpp defines some communication parameters,Wa tchdog parameters and allocates throttle, braking and steering to specific CAN busses.
 //Currently set to UART Serial
 #include "config.hpp"
-
-//Reads PWM type inputs for signals from steering, throttle and duty cycle
-PwmIn steer(Steer_Pin);
+#include <iomanip>
+PwmIn steer(Steer_Pin); 
 PwmIn throttle(Throttle_Pin);
 PwmIn red(Red_Pin);
+elrc_receiver theReceiver(REMOTE_UART_RX_PIN, REMOTE_UART_TX_PIN);
 
 namespace tritonai {
 namespace gkc{
@@ -36,68 +36,41 @@ namespace gkc{
     RCController::RCController(){
 
         cont_p = new Controller();
-        cont_p -> deactivate_controller();
+        cont_p->deactivate_controller();
+        noMsgCounter = 0;
         //std::cout << "Initializing RCController class" << std::endl;
-        sensor_write.start(callback(this,&RCController::getSensor));
-        rolling_average = 0;
+        currSteer = 0;
+        currThrottle = 0;
+        currBreak = 0;
+        sensor_write.call_every(50ms, this, &RCController::getSensor);
+        sensor_write.dispatch_forever();
     }
     //Gets PWM
     void RCController::getSensor(){
         bool isRC = true;
         time_t secondsOG = time(NULL);
-        float is_pos = 0;
-        while(1!=0){
-        float currSteer, currThrottle, currBreak = 0;
-        bool currSwitch;
-
-        // std::cout << currSteer << std::endl;
-        //std::cout << currThrottle << std::endl;
-        // std::cout << currBreak << std::endl;
-        float pwmSteer = steer.dutycycle();
-        float pwmThrottle = throttle.dutycycle();
-        float pwmSwitch = red.dutycycle();
-
-        pwmSteer = pwmSteer*.5+rolling_average*.5;
-        rolling_average = pwmSteer;
-        if(time(NULL) - secondsOG > 5){
-            secondsOG = time(NULL);
-            is_pos++;
-            if(is_pos > 1)
-                is_pos-=3;
+        //while(1!=0){
+        bool emoOn;
+        bool whoControlls;
+        //std::cout << "bad luck" << std::endl;
+        if(theReceiver.gatherData()){
+            currThrottle = Map.Throttle(theReceiver.busData()[throttlePad]);
+            currSteer = Map.Steering(theReceiver.busData()[steerPad]);
+            emoOn = Map.emoVal(theReceiver.busData()[emoPadLeft], 
+                theReceiver.busData()[emoPadRight], theReceiver.busData()[rightTriSwitch]);
+            whoControlls = Map.whoControlls(theReceiver.busData()[rightTriSwitch]);
+            //cont_p->deactivate_controller();
+            //cont_p->activate_controller();
+            noMsgCounter = 0;
         }
-        currSteer = 20*is_pos;//Map.Steering(pwmSteer);
-        std::cout << currSteer << std::endl;
-        currThrottle = 0;//Map.Trigger(pwmThrottle);
-        //currBreak = toBreak(pwmThrottle);
-        currSwitch = 0;//Map.Red(pwmSwitch);
-        //std::cout << pwmSwitch << std::endl;
-        //std::cout << currSteer << std::endl;
-        //std::cout << currThrottle << std::endl;
-        //std::cout << currSwitch << std::endl << std::endl;
-
-        if(1){//currSwitch == 1){
-            if(isRC == false){
-                //std::cout << "deactivated " << isRC << std::endl;
-                cont_p->deactivate_controller();
-                isRC = true;
-            }
-            //std::cout << "ready to run " << std::endl;
-            //std::cout << currSteer << ", " << currThrottle << ", " << currBreak << endl;
-            //Update with current actuation values
-            cont_p->set_actuation_values(currSteer, currThrottle, currBreak);
-            //std::cout << "switch should be  " << currSwitch << std::endl << std::endl;
-            //std::cout << "hello world" << std::endl;
-
+        else {
+            noMsgCounter++;
         }
-        else{
-            if(isRC){
-                cont_p->activate_controller();
-                isRC = false;//Reset to check again
-            }
-        }
-        ThisThread::sleep_for(100ms);
+        if(emoOn || noMsgCounter > 10)
+            currThrottle = 0;
+        std::cout << std::setprecision(2) << currThrottle << " " << std::setprecision(2) << currSteer << " " << emoOn << std::endl;
 
-        }
+        cont_p->set_actuation_values(currSteer, currThrottle, currBreak);
     }
 }
 

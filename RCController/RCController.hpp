@@ -18,15 +18,78 @@
 #include "controller.hpp"
 #include "mbed.h"
 #include "PwmIn.h"
-#define  PI 3.141592654
+#include "elrs_receiver.hpp"
+#include "mbed_events.h"
+
+#define PI          3.141592654
+#define throttlePad 1
+#define steerPad    3
+#define emoPadLeft  4
+#define emoPadRight 7
+#define rightTriSwitch 6
+
 
 namespace tritonai {
 namespace gkc{
 
 struct Translation {
 
-//The steering function takes in the steering duty cycle with float precision and returns the steering angle in Radians
-//This may be a good place to implement the limit switch
+double normalize(int analogValue){
+    if(analogValue> 1800) analogValue = 1800;
+    if(analogValue < 174) analogValue = 174;
+    analogValue -= 992;
+    return analogValue >= 0 ?  (double(analogValue)/(1800-992)) : (double(analogValue)/(992-174));
+}
+
+double Steering(int steerVal){
+    double Steering_Ang;
+    double Steering_Ang_rad;
+    double normalized_value = normalize(steerVal);
+    if(normalized_value < 0)
+        Steering_Ang = -normalized_value*MIN__WHEEL_STEER_DEG;
+    else
+        Steering_Ang = normalized_value*MAX__WHEEL_STEER_DEG;
+    if(Steering_Ang > MAX__WHEEL_STEER_DEG) Steering_Ang = MAX__WHEEL_STEER_DEG;
+    if(Steering_Ang < MIN__WHEEL_STEER_DEG) Steering_Ang = MIN__WHEEL_STEER_DEG;
+    if ( -.1 < Steering_Ang && Steering_Ang < .1 ) Steering_Ang = 0.0;
+
+    Steering_Ang_rad = Steering_Ang * (PI/180);
+
+    return Steering_Ang_rad;
+}
+
+double Throttle(int throttleVal){
+    double normalized_value = normalize(throttleVal);
+    if(normalized_value < .1) normalized_value = 0;
+    return normalized_value;
+
+}
+
+bool Break(int breakVal){
+    double normalized_value = normalize(breakVal);
+    if(normalized_value > -.1) normalized_value = 0;
+    return normalized_value;    
+    return 0;
+}
+
+bool emoVal(int emoVal1, int emoVal2, int rightTriVal){
+    double emoNorm1 = normalize(emoVal1);
+    double emoNorm2 = normalize(emoVal2);
+    double triNorm = normalize(rightTriVal);
+    //if(triNorm<.5&&triNorm>-.5)
+    //    return true;
+    if(emoNorm1 < 0 && emoNorm2 < 0)
+        return false;
+    return true;
+}
+
+bool whoControlls(int rightTriVal){
+    double triNorm = normalize(rightTriVal);
+    if(triNorm > 0)
+        return false;
+    return true; 
+}
+/*
 float Steering(float Steering_Duty) {
      //50 degree maximum left and right
      double Steering_Ang;
@@ -69,6 +132,7 @@ bool Red(float Red_Duty){
     if (Red_Duty >= 0.19 && Red_Duty < .25) return true;
     else return false;
 }
+*/
 
 };
 
@@ -80,18 +144,12 @@ public:
 //The following attributes(variables) can only be uned in the RCController class
 //
 private:
+    int noMsgCounter;
     float rolling_average;
-    //Pointer to a controller object
+    float currSteer, currThrottle, currBreak;
     Controller* cont_p;
-    //Pointers to PWM objects for Steering,throttle and switch inputs
-    PwmIn* steerVal;
-    PwmIn* throttleVal;
-    PwmIn* switchVal;
 
-    // Thread for reading sensors
-    // By creating multiple thread objects,
-    // you can run multiple tasks concurrently within a program.
-    Thread sensor_write;
+    EventQueue sensor_write;
     Translation Map;
 };
 }
