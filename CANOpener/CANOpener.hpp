@@ -2,6 +2,9 @@
 #include "InterfaceCAN.h"
 #include <vector>
 
+namespace tritonai {
+namespace gkc{
+
 class CANOpener {
 public:
     CANOpener(PinName rd, PinName td, int hz, const uint32_t vesc_id);
@@ -30,3 +33,6 @@ private:
         buffer[(*index)++] = number;
     }
 };
+
+}
+}

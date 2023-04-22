@@ -5,6 +5,8 @@
 #define VESC_CAN_PACKET_STATUS_1 9
 #define VESC_CAN_PACKET_STATUS_4 16
 
+using namespace tritonai::gkc;
+
 CANOpener::CANOpener(PinName rd, PinName td, int hz, uint32_t vesc_id) {
     this->can = new CAN(rd, td, hz);
     this->VESC_ID = vesc_id;
