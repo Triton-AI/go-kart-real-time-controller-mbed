@@ -27,7 +27,7 @@ CommManager::CommManager(GkcPacketSubscriber *sub)
       factory_(
           std::make_unique<GkcPacketFactory>(sub, GkcPacketUtils::debug_cout)) {
   attach(callback(this, &CommManager::watchdog_callback));
-  std::cout << "Initializing Communication" << std::endl;
+  // std::cout << "Initializing Communication" << std::endl;
 #ifdef COMM_USB_SERIAL
   std::cout << "This firmware uses USB serial" << std::endl;
   usb_serial_ = std::make_unique<USBSerial>();
@@ -35,14 +35,14 @@ CommManager::CommManager(GkcPacketSubscriber *sub)
 #endif
 
 #ifdef COMM_UART_SERIAL
-  std::cout << "This firmware uses UART serial" << std::endl;
+  // std::cout << "This firmware uses UART serial" << std::endl;
   uart_serial_ =
       std::make_unique<BufferedSerial>(UART_TX_PIN, UART_RX_PIN, BAUD_RATE);
   uart_serial_thread_.start(mbed::callback(this, &CommManager::recv_callback));
 #endif
 
   send_thread.start(callback(this, &CommManager::send_thread_impl));
-  std::cout << "Communication Initialized" << std::endl;
+  // std::cout << "Communication Initialized" << std::endl;
 }
 
 void CommManager::send(const GkcPacket &packet) {
@@ -80,7 +80,7 @@ void CommManager::recv_callback() {
 #endif
 
 #ifdef COMM_UART_SERIAL
-  std::cout << "Starting comm receive" << std::endl;
+  // std::cout << "Starting comm receive" << std::endl;
   static auto buffer = GkcBuffer(RECV_BUFFER_SIZE, 0);
   static auto wait_time = std::chrono::milliseconds(WAIT_READ_MS);
   while (!ThisThread::flags_get()) {
@@ -97,7 +97,7 @@ void CommManager::recv_callback() {
     // TODO(haoru): log the number of frequence compromises (sleep_time >
     // wait_time)
   }
-  std::cout << "Exiting comm receive" << std::endl;
+  // std::cout << "Exiting comm receive" << std::endl;
 #endif
 }
 

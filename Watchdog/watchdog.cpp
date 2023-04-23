@@ -31,7 +31,7 @@ void Watchdog::disarm() {
 }
 
 void Watchdog::watchdog_callback() {
-  std::cout << "Watchdog timeout" << std::endl;
+  // std::cout << "Watchdog timeout" << std::endl;
 }
 
 void Watchdog::start_watch_thread() {

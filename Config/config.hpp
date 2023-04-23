@@ -29,8 +29,10 @@
 #define BAUD_RATE 115200
 #define UART_RX_PIN PD_2
 #define UART_TX_PIN PC_12
-//#define UART_RX_PIN PA_11
-//#define UART_TX_PIN PA_12
+//#define UART_RX_PIN PE_7
+//#define UART_TX_PIN PE_8
+#define REMOTE_UART_TX_PIN PE_0
+#define REMOTE_UART_RX_PIN PE_1
 
 // Generic comm settings
 #define RECV_BUFFER_SIZE 32
@@ -61,46 +63,97 @@
 #define DEFAULT_ACTUATION_LOST_TOLERANCE_MS 2000
 // How often should sensor polling happen
 #define DEFAULT_SENSOR_POLL_INTERVAL_MS 10
-#define DEFAULT_SENSOR_POLL_LOST_TOLERANCE_MS 100
+#define DEFAULT_SENSOR_POLL_LOST_TOLERANCE_MS 200
 
 // *********
 // Actuation
 // *********
-// Throttle
-#define THROTTLE_PWM_PIN PA_6
-// Braking
 #define CAN1_RX PD_0
 #define CAN1_TX PD_1
-#define CAN1_BAUDRATE 500000
-#define CAN_STEER CAN_1 // Which CAN bus to use for steering [CAN_1 | CAN_2]
+#define CAN1_BAUDRATE 250000
+#define CAN2_RX PB_5
+#define CAN2_TX PB_6
+#define CAN2_BAUDRATE 250000
+// Throttle
+// #define THROTTLE_PWM_PIN PA_6
+#define CAN_THROTTLE CAN_2
+#define MAX_THROTTLE_SPEED_ERPM 1000
+#define MAX_THROTTLE_CURRENT_MA 5000
+#define MAX_THROTTLE_MS 10
+#define CONST_ERPM2MS 0.0010861111108
+//#define THROTTLE_ERPM_TO_RPS_RATIO 0.1
+#define THROTTLE_VESC_ID 5
+// Braking
+#define CAN_BRAKE CAN_1 // Which CAN bus to use for steering [CAN_1 | CAN_2]
 #define MAX_BRAKE_VAL 2500
 #define MIN_BRAKE_VAL 1500
 // Steering
-#define CAN2_RX PB_5
-#define CAN2_TX PB_6
-#define CAN2_BAUDRATE 500000
-#define CAN_BRAKE CAN_1 // Which CAN bus to use for brake [CAN_1 | CAN_2]
-#define MAX_STEER_DEG 270.0
-#define MIN_STEER_DEG 90.0
+#define CAN_STEER CAN_2 // Which CAN bus to use for brake [CAN_1 | CAN_2]
+#define MAX_STEER_DEG 250.0
+#define MIN_STEER_DEG 120.0
+#define VIRTUAL_LIMIT_OFF 5
 #define NEUTRAL_STEER_DEG 180.0
-#define MAX_STEER_SPEED_ERPM 1000.0
-#define MAX_CURRENT_MA 3000.0
-#define STEER_P 20.0
-#define STEER_I 0.0
-#define STEER_D 1.0
-#define STEER_DEADBAND_DEG 0.5
+#define STEERING_CAL_OFF 230 //this changes the calibration angle
+#define MAX_STEER_SPEED_ERPM 50000
+#define MAX_STEER_SPEED_MA 1 //this controls the max steering current i.e strength 
+#define MIN_STEER_SPEED_MA -1 //this controls the max steering current i.e strength 
+
+#define MAX_STEER_CURRENT_MA 24000 //this controls the max steering current i.e strength 
+#define MIN_STEER_CURRENT_MA -32000 //this controls the max steering current i.e strength 
+//Good configuration for current PID
+// #define STEER_P 30000.0
+// #define STEER_I 7000
+// #define STEER_D 2000//5000.0
+//#define STEADY_STATE_CURRENT_MULT 20000
+//Good configuration for current PID in the air
+#define STEER_P 30000
+#define STEER_I 5000
+#define STEER_D 3000//5000.0
+#define STEADY_STATE_CURRENT_MULT_POS 18000
+#define STEADY_STATE_CURRENT_MULT_NEG 25000
+//good configuration for RPM PID
+// #define STEER_P 25000.0
+// #define STEER_I 0.0
+// #define STEER_D 100
+// #define STEADY_STATE_CURRENT_MULT 0
+#define STEER_DEADBAND_DEG 0.5 //VESC already has a limit of min ERPM := 600. Enything bellow this is already used as 0.
 #define PID_INTERVAL_MS 10
-#define VESC_ID 3
+#define STEER_VESC_ID 2
+#define RIGHT_LSWITCH PF_14
+#define LEFT_LSWITCH PF_15
+#define ENABLE_LSWITCH      //comment to remove limit switches behaviour
 
 // *******
 // Sensors
 // *******
 // PWM steering encoder
-#define STEER_ENCODER_PIN A0
+#define STEER_ENCODER_PIN PC_7
+
+// motor angle - left wheel - right wheel - average
+// 0	0	0	0
+// 30	8	10	9
+// 50	9	15	12
+// 70	12	22	17
+// 80	10	30	20
+
+#define STERING_MAPPTING    {{0, 0,},\
+                            {0.523599, 0.15708,},\
+                            {0.872665, 0.20944,},\
+                            {1.22173, 0.296706,},\
+                            {1.39626, 0.349066,}}; // takes first and last column
+#define MIN__WHEEL_STEER_DEG -20
+#define MAX__WHEEL_STEER_DEG 20
 
 // *****
 // ESTOP
 // *****
-#define ESTOP_PIN PD_8
+#define ESTOP_PIN PB_10
+
+//PWM pins for RC car
+
+#define Steer_Pin PA_5
+#define Throttle_Pin PA_6
+#define Red_Pin PD_12
+
 
 #endif // CONFIG_HPP_

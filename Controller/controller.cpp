@@ -5,7 +5,7 @@
  * @version 0.1
  * @date 2022-02-10
  *
- * @copyright Copyright 2022 Triton AI
+ * @copyright Copyright 2022 Triton AI hello this is a test
  *
  */
 
@@ -19,6 +19,7 @@
 #include "gkc_packet_utils.hpp"
 #include "gkc_packets.hpp"
 
+#include "state_machine.hpp"
 #include "tai_gokart_packet/version.hpp"
 
 #include "config.hpp"
@@ -34,30 +35,35 @@ Controller::Controller()
     : GkcStateMachine(), GkcPacketSubscriber(),
       Watchable(DEFAULT_MCU_HEARTBEAT_INTERVAL_MS,
                 DEFAULT_MCU_HEARTBEAT_LOST_TOLERANCE_MS),
-      comm_(this), actuation_(), sensor_(),
+      ISensorProvider(), comm_(this), actuation_(this), sensor_(), ILogger(),
       pc_hb_watcher_(DEFAULT_PC_HEARTBEAT_INTERVAL_MS,
                      DEFAULT_PC_HEARTBEAT_LOST_TOLERANCE_MS),
       ctl_cmd_watcher_(DEFAULT_CTL_CMD_INTERVAL_MS,
                        DEFAULT_CTL_CMD_LOST_TOLERANCE_MS),
       watchdog_(DEFAULT_WD_INTERVAL_MS, DEFAULT_WD_MAX_INACTIVITY_MS,
-                DEFAULT_WD_INTERVAL_MS) {
-  std::cout << "Initializing Controller class" << std::endl;
-  attach(callback(this, &Controller::watchdog_callback));
-  pc_hb_watcher_.attach(callback(this, &Controller::watchdog_callback));
-  ctl_cmd_watcher_.attach(callback(this, &Controller::watchdog_callback));
-  Watchable::activate();
+                DEFAULT_WD_INTERVAL_MS),
+      estop_interrupt(ESTOP_PIN) {
+  // std::cout << "Initializing Controller class" << std::endl;
+  //attach(callback(this, &Controller::watchdog_callback));
+  //pc_hb_watcher_.attach(callback(this, &Controller::watchdog_callback));
+  //ctl_cmd_watcher_.attach(callback(this, &Controller::watchdog_callback));
+  //Watchable::activate();
 
-  watchdog_.add_to_watchlist(this);
-  watchdog_.add_to_watchlist(&pc_hb_watcher_);
-  watchdog_.add_to_watchlist(&ctl_cmd_watcher_);
+  //watchdog_.add_to_watchlist(this);
+  //watchdog_.add_to_watchlist(&pc_hb_watcher_);
+  //watchdog_.add_to_watchlist(&ctl_cmd_watcher_);
 
   sensor_.register_provider(&actuation_);
+  // sensor_.register_provider(this);
 
-  std::cout << "Controller class initialized" << std::endl;
+  // estop_interrupt.rise(callback(this,
+  // &Controller::estop_interrupt_callback));
+
+  // std::cout << "Controller class initialized" << std::endl;
 }
 
 void Controller::watchdog_callback() {
-  std::cout << "Controller watchdog triggered" << std::endl;
+  // std::cout << "Controller watchdog triggered" << std::endl;
   if (get_state() != GkcLifecycle::Uninitialized &&
       get_state() != GkcLifecycle::Emergency) {
     emergency_stop();
@@ -65,7 +71,7 @@ void Controller::watchdog_callback() {
 }
 
 void Controller::packet_callback(const Handshake1GkcPacket &packet) {
-  std::cout << "Handshake received" << std::endl;
+  // std::cout << "Handshake received" << std::endl;
   if (get_state() == GkcLifecycle::Uninitialized) {
     Handshake2GkcPacket pkt;
     pkt.seq_number = packet.seq_number + 1;
@@ -141,11 +147,6 @@ void Controller::packet_callback(const StateTransitionGkcPacket &packet) {
   case Inactive:
     GkcStateMachine::deactivate();
     break;
-  case Shutdown:
-    send_log(LogPacket::Severity::WARNING,
-             "Shutdown state can only be entered upon reciving shutdown "
-             "request. Ignoring.");
-    break;
   case Emergency:
     GkcStateMachine::emergency_stop();
     break;
@@ -154,16 +155,35 @@ void Controller::packet_callback(const StateTransitionGkcPacket &packet) {
 
 void Controller::packet_callback(const ControlGkcPacket &packet) {
   // TODO
-  // std::stringstream s;
-  // s << "[Control] thr: " << packet.throttle << ", brk: " << packet.brake
-  //  << ", str: " << packet.steering;
-  // send_log(LogPacket::Severity::INFO, s.str());
+   std::stringstream s;
+   s << "[Control] thr: " << packet.throttle << ", brk: " << packet.brake
+    << ", str: " << packet.steering;
+   send_log(LogPacket::Severity::INFO, s.str());
   if (get_state() == GkcLifecycle::Active) {
     actuation_.set_throttle_cmd(new float(packet.throttle));
     actuation_.set_brake_cmd(new float(packet.brake));
     actuation_.set_steering_cmd(new float(packet.steering));
   }
+
 }
+
+void Controller::set_actuation_values(float steerVal, float throttleVal, float breakVal){
+    //std::cout << "I am being called!!!!!" << std::endl;
+    actuation_.set_throttle_cmd(new float(throttleVal)); //was set to steer before
+    //std::cout << "throttle: " << throttleVal << endl;
+    float h1 = actuation_.get_throttle_cmd();
+    //std::cout << h1 << std::endl;
+    actuation_.set_brake_cmd(new float(breakVal)); // setr to throttle before
+    //std::cout << "brake: " << breakVal << endl;
+    float h2 = actuation_.get_brake_cmd();
+    //std::cout << h2 << std::endl;
+    actuation_.set_steering_cmd(new float(steerVal));//set to break
+    //std::cout << "steering: " << steerVal << endl;
+    float h3 = actuation_.get_steering_cmd();
+    //std::cout <<"from controller.cpp " << h3 <<  std::endl;
+
+}
+
 
 void Controller::packet_callback(const SensorGkcPacket &packet) {
   send_log(LogPacket::Severity::WARNING,
@@ -194,6 +214,12 @@ void Controller::packet_callback(const Shutdown2GkcPacket &packet) {
 void Controller::packet_callback(const LogPacket &packet) {
   send_log(LogPacket::Severity::WARNING,
            "Log packet received which should not be sent to MCU. Ignoring.");
+}
+
+bool Controller::is_ready() { return true; }
+
+void Controller::populate_reading(SensorGkcPacket &pkt) {
+  // pkt.values.fault_warning = static_cast<bool>(estop_interrupt.read());
 }
 
 void Controller::initialize_thread_callback() { initialize(); }
@@ -241,9 +267,19 @@ void Controller::sensor_poll_thread_callback() {
   }
 }
 
+void Controller::estop_interrupt_callback() {
+  send_log(LogPacket::Severity::WARNING, "[ESTOP TRIGGERED!!!]");
+  emergency_stop();
+}
+
 StateTransitionResult
 Controller::on_initialize(const GkcLifecycle &last_state) {
-  std::cout << "Start initialization" << std::endl;
+  // std::cout << "Start initialization" << std::endl;
+  // if (estop_interrupt.read()) {
+  //  send_log(LogPacket::Severity::ERROR,
+  //           "ESTOP is still on. Initialization failed.");
+  //  return StateTransitionResult::FAILURE;
+  // }
   pc_hb_watcher_.activate();
   heartbeat_thread.start(
       callback(this, &Controller::heartbeat_thread_callback));
@@ -258,6 +294,22 @@ Controller::on_deactivate(const GkcLifecycle &last_state) {
   ctl_cmd_watcher_.deactivate();
   // TODO(haoru): disallow actuation
   return StateTransitionResult::SUCCESS;
+}
+
+void Controller::deactivate_controller(){
+    ctl_cmd_watcher_.deactivate();
+    pc_hb_watcher_.deactivate();
+    heartbeat_thread.terminate();
+    sensor_poll_thread.terminate();
+}
+
+void Controller::activate_controller(){
+    ctl_cmd_watcher_.activate();
+    pc_hb_watcher_.activate();
+  heartbeat_thread.start(
+      callback(this, &Controller::heartbeat_thread_callback));
+  sensor_poll_thread.start(
+      callback(this, &Controller::sensor_poll_thread_callback));
 }
 
 StateTransitionResult Controller::on_activate(const GkcLifecycle &last_state) {
