@@ -32,13 +32,37 @@ namespace tritonai {
 namespace gkc {
 
 /**
- * @brief
- *
+ * @brief  The Controller class is responsible for managing the go kart (unless it is beeing controlled as RC
+ * that RCcontroller is used). It has to handle the communication with the MRC (with the GkcPacketSubscriber).
+ * It also handles the state machine that enables or disables the kart (GkcStateMachine).
+ * To interact with the kart it has an ActuationController instance which takes care of interacting with the actuators.
  * The Controller class is responsible for performing a function when a specific command is received from the MRC.
- *
- * Each message type has its own `packet_callback()` function.
  * 
+ * The GkcPacketSubscriber class is a base class that provides functionality for receiving packets of various
+ * types from the MRC. GkcPacketSubscriber is an abstract class so the Controller class implements the packet_callback
+ * functions to define how to handle each type of packet received.
+ * Each message type has its own `packet_callback()` function.
  * For example, `packet_callback(const ControlGkcPacket &packet)` responds to a control command from the MRC.
+ *
+ * The GkcStateMachine class is a base class that provides the state machine functionality for the Controller class.
+ * Some packet_callback() functions trigger state changes to activate the kart for example.
+* Or the estop interrups sets the sate to emergecy stop.
+ * on_initialize() on_deactivate() on_activate() on_shutdown() on_emergency_stop() on_reinitialize() need to be defined
+ * because Controller inheris from GkcStateMachine. This functions are called when the state is changed to
+ * the corresponding state.
+ *
+ * When the car is used as an RC car, instead of communicating with the MRC the class RCController uses
+ * the methods activate_controller() and set_actuation_values() to bypass the MRC messages needed to
+ * activate the kart and give it commands.
+ *
+ * To send the sensor information to the MRC it has the sensor_poll_thread. To do so it has the SensorReader sensor_ instance
+ * which connects to the ActuationController actuation_.
+ * TODO: check why it inherits from ISensorProvider, I believe it is not used.
+ *
+ * send_log sends a LogPacket to the MRC. The terminal at the MRC will print the severity
+ * and the message, and it can be configured to only show logs with severyty higher that a threshold.
+ * It is quite usefull for debuguing as a "cout <<" will print the text on Mbed which actually takes quite long and could
+ * mess up how the code works.
  */
 class Controller : public GkcStateMachine,
                    public GkcPacketSubscriber,
@@ -63,7 +87,7 @@ public:
   void packet_callback(const Shutdown2GkcPacket &packet);
   void packet_callback(const LogPacket &packet);
   
-  //This is to make rc controller work
+  //This is to make rc controller work bypassing the state machine
   void deactivate_controller();
   void set_actuation_values(float steerVal, float throttleVal, float breakVal);
   void activate_controller();
