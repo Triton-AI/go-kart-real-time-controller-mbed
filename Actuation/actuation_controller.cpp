@@ -41,7 +41,9 @@
 
 #define VESC_RPM_EXTENDED_ID 0x03
 #define VESC_CURRENT_EXTENDED_ID 0x01
-#define VESC_STATUS_EXTENDED_ID 0x09
+#define VESC_POSITION_EXTENDED_ID 0x04
+#define VESC_STATUS_EXTENDED_ID_PACKET_1 0x09
+#define VESC_STATUS_EXTENDED_ID_PACKET_4 0x10
 
 
 /**
@@ -54,11 +56,12 @@
 */
 static constexpr uint32_t VESC_RPM_ID(const uint32_t &vesc_id)
 {
-// The RPM command has an extended ID of 0x03, and the VESC ID is concatenated to form the
-// unique message ID.
-return (static_cast<uint32_t>(VESC_RPM_EXTENDED_ID) << sizeof(uint8_t) * 8) |
-static_cast<uint32_t>(vesc_id);
+    // The RPM command has an extended ID of 0x03, and the VESC ID is concatenated to form the
+    // unique message ID.
+    return (static_cast<uint32_t>(VESC_RPM_EXTENDED_ID) << sizeof(uint8_t) * 8) |
+    static_cast<uint32_t>(vesc_id);
 }
+
 /**
 * 
 * @brief Generate unique CAN message ID for current command
@@ -76,15 +79,47 @@ static constexpr uint32_t VESC_CURRENT_ID(const uint32_t &vesc_id)
 
 /**
 * 
+* @brief Generate unique CAN message ID for position control command
+* This function generates the unique CAN message ID for sending position control commands to a VESC motor
+* controller with the specified identifier.
+* @param vesc_id The unique identifier of the VESC motor controller to send the current command to
+* @return The unique CAN message ID for sending the current command to the specified VESC motor controller
+*/
+static constexpr uint32_t VESC_POSITION_ID(const uint32_t &vesc_id)
+{
+  return (static_cast<uint32_t>(VESC_POSITION_EXTENDED_ID)
+          << sizeof(uint8_t) * 8) |
+         static_cast<uint32_t>(vesc_id);
+}
+
+/**
+* 
 * @brief Generate unique CAN message ID for status request
 * This function generates the unique CAN message ID for incoming status information from a
-* VESC motor controller with the specified identifier.
+* VESC motor controller with the specified identifier. To see which specific ones, please check
+* https://github.com/vedderb/bldc/blob/master/documentation/comm_can.md#status-commands
 * @param vesc_id The unique identifier of the VESC motor controller to get status information from
 * @return The unique CAN message ID for incoming status information from the specified VESC motor controller
 */
-static constexpr uint32_t VESC_STATUS_ID(const uint32_t &vesc_id)
+static constexpr uint32_t VESC_STATUS_ID_PACKET_1(const uint32_t &vesc_id)
 {
-  return (static_cast<uint32_t>(VESC_STATUS_EXTENDED_ID)
+  return (static_cast<uint32_t>(VESC_STATUS_EXTENDED_ID_PACKET_1)
+          << sizeof(uint8_t) * 8) |
+         static_cast<uint32_t>(vesc_id);
+}
+
+/**
+* 
+* @brief Generate unique CAN message ID for status request
+* This function generates the unique CAN message ID for incoming status information from a
+* VESC motor controller with the specified identifier. To see which specific ones, please check
+* https://github.com/vedderb/bldc/blob/master/documentation/comm_can.md#status-commands
+* @param vesc_id The unique identifier of the VESC motor controller to get status information from
+* @return The unique CAN message ID for incoming status information from the specified VESC motor controller
+*/
+static constexpr uint32_t VESC_STATUS_ID_PACKET_4(const uint32_t &vesc_id)
+{
+  return (static_cast<uint32_t>(VESC_STATUS_EXTENDED_ID_PACKET_4)
           << sizeof(uint8_t) * 8) |
          static_cast<uint32_t>(vesc_id);
 }
@@ -176,6 +211,22 @@ template <typename S, typename D>
 constexpr D deg_to_rad(const S &deg)
 {
   return static_cast<D>(deg * M_PI / 180.0);
+}
+
+/**
+* 
+* @brief Convert an angle in radians to degrees
+* This function takes an angle in radians and converts it to degrees. The input angle is multiplied
+* by the constant 180.0/M_PI to obtain its equivalent in degrees, and then cast to the output type.
+* @tparam S The type of the input angle in radians (must support multiplication with a float)
+* @tparam D The type of the output angle in degrees (must support assignment)
+* @param rad The input angle in radians to convert to degrees
+* @return The input angle converted to degrees
+*/
+template <typename S, typename D>
+constexpr D rad_to_deg(const S &rad)
+{
+  return static_cast<D>(rad * 180.0 / M_PI);
 }
 
 
@@ -334,8 +385,13 @@ ActuationController::ActuationController(ILogger *logger)
       callback(this, &ActuationController::throttle_thread_impl));
   steering_thread.start(
       callback(this, &ActuationController::steering_thread_impl));
+  
+  /*
+  // We don't need this anymore because we will be utilizing the VESC position control 
   steering_pid_thread.start(
       callback(this, &ActuationController::steering_pid_thread_impl));
+  */
+
   brake_thread.start(callback(this, &ActuationController::brake_thread_impl));
   sensor_poll_thread.start(
       callback(this, &ActuationController::sensor_poll_thread_impl));
@@ -389,7 +445,7 @@ void ActuationController::throttle_thread_impl()
  *
  * The MRC commands the steering position as the angles of the wheels, but ActuationController::steering_thread_impl() already takes care of this conversion using the map_steer2motor() function. This conversion is defined in config.hpp as STERING_MAPPTING
  *
- * 
+ * @deprecated This is not necessary anymore because we will be utilizing VESC position control.
  */
 
 void ActuationController::steering_pid_thread_impl()
@@ -493,8 +549,15 @@ void ActuationController::steering_thread_impl()
     *cmd = clamp<float>(*cmd, deg_to_rad<float, float>(MIN__WHEEL_STEER_DEG), deg_to_rad<float, float>(MAX__WHEEL_STEER_DEG));
     *cmd = map_steer2motor(*cmd) + M_PI;
     *cmd = clamp<float>(*cmd, deg_to_rad<float, float>(MIN_STEER_DEG), deg_to_rad<float, float>(MAX_STEER_DEG));
-    current_steering_cmd = *cmd;
+    angle_steering_cmd = *cmd;
+    const int32_t vesc_steering_cmd = rad_to_deg<float, int32_t>(angle_steering_cmd);
+    printf("Steering Angle (deg), %d", vesc_steering_cmd);
     delete cmd;
+    // uint8_t message[4] = {0, 0, 0, 0};
+    // int32_t idx = 0;
+    // buffer_append_int32(&message[0], vesc_steering_cmd, &idx);
+    // CAN_STEER.write(CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0],
+    //                               sizeof(message), CANData, CANExtended));
   }
 }
 
@@ -588,7 +651,7 @@ void ActuationController::sensor_poll_thread_impl()
         DEFAULT_SENSOR_POLL_INTERVAL_MS};
     // Set up a filter to receive VESC_STATUS_ID messages from the throttle VESC. Needed for can.read()
     static const auto throttle_vesc_status_filter = CAN_THROTTLE.filter(
-        VESC_STATUS_ID(THROTTLE_VESC_ID), 0x0001, CANExtended);
+        VESC_STATUS_ID_PACKET_1(THROTTLE_VESC_ID), 0x0001, CANExtended);
 
     // Set the current and previous time to the current time
     previous_time = us_ticker_read();

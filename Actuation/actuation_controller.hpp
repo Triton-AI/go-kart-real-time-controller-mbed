@@ -58,7 +58,7 @@ public:
   explicit ActuationController(ILogger *logger);
 
   float get_throttle_cmd() const { return current_throttle_cmd; };
-  float get_steering_cmd() const { return current_steering_cmd; };
+  float get_steering_cmd() const { return angle_steering_cmd; };
   float get_brake_cmd() const { return current_brake_cmd; };
 
   bool set_throttle_cmd(float *cmd) { return throttle_cmd_queue.try_put(cmd); };
@@ -75,6 +75,7 @@ protected:
 
   float current_throttle_cmd{0.0};
   float current_steering_cmd{0.0};
+  float angle_steering_cmd{0.0};
   float current_brake_cmd{0.0};
 
   Thread throttle_thread;
