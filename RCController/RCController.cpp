@@ -54,7 +54,7 @@ namespace gkc{
         bool whoControlls;
         //std::cout << "bad luck" << std::endl;
         if(theReceiver.gatherData()){
-            // std::cout << "Gathering" << std::endl;
+            std::cout << "Gathering" << std::endl;
             currThrottle = Map.Throttle(theReceiver.busData()[throttlePad]);
             currSteer = Map.Steering(theReceiver.busData()[steerPad]);
             emoOn = Map.emoVal(theReceiver.busData()[emoPadLeft], 

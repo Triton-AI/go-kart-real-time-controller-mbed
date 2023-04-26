@@ -88,7 +88,7 @@
 #define MAX_BRAKE_VAL 2500
 #define MIN_BRAKE_VAL 1500
 // Steering
-#define CAN_STEER CAN_2 // Which CAN bus to use for brake [CAN_1 | CAN_2]
+#define CAN_STEER CAN_1 // Which CAN bus to use for brake [CAN_1 | CAN_2]
 #define MAX_STEER_DEG 60.0
 #define MIN_STEER_DEG -60.0
 #define VIRTUAL_LIMIT_OFF 5
