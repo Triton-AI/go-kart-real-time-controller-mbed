@@ -54,6 +54,7 @@ namespace gkc{
         bool whoControlls;
         //std::cout << "bad luck" << std::endl;
         if(theReceiver.gatherData()){
+            // std::cout << "Gathering" << std::endl;
             currThrottle = Map.Throttle(theReceiver.busData()[throttlePad]);
             currSteer = Map.Steering(theReceiver.busData()[steerPad]);
             emoOn = Map.emoVal(theReceiver.busData()[emoPadLeft], 
@@ -64,11 +65,12 @@ namespace gkc{
             noMsgCounter = 0;
         }
         else {
+            // std::cout << "Not Gathering" << std::endl;
             noMsgCounter++;
         }
         if(emoOn || noMsgCounter > 10)
             currThrottle = 0;
-        std::cout << std::setprecision(2) << currThrottle << " " << std::setprecision(2) << currSteer << " " << emoOn << std::endl;
+        // std::cout << std::setprecision(2) << currThrottle << " " << std::setprecision(2) << currSteer << " " << emoOn << std::endl;
 
         cont_p->set_actuation_values(currSteer, currThrottle, currBreak);
     }

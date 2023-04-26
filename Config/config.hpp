@@ -70,10 +70,10 @@
 // *********
 #define CAN1_RX PD_0
 #define CAN1_TX PD_1
-#define CAN1_BAUDRATE 250000
+#define CAN1_BAUDRATE 500000
 #define CAN2_RX PB_5
 #define CAN2_TX PB_6
-#define CAN2_BAUDRATE 250000
+#define CAN2_BAUDRATE 500000
 // Throttle
 // #define THROTTLE_PWM_PIN PA_6
 #define CAN_THROTTLE CAN_2
@@ -89,10 +89,10 @@
 #define MIN_BRAKE_VAL 1500
 // Steering
 #define CAN_STEER CAN_2 // Which CAN bus to use for brake [CAN_1 | CAN_2]
-#define MAX_STEER_DEG 250.0
-#define MIN_STEER_DEG 120.0
+#define MAX_STEER_DEG 60.0
+#define MIN_STEER_DEG -60.0
 #define VIRTUAL_LIMIT_OFF 5
-#define NEUTRAL_STEER_DEG 180.0
+#define NEUTRAL_STEER_DEG 0.0
 #define STEERING_CAL_OFF 230 //this changes the calibration angle
 #define MAX_STEER_SPEED_ERPM 50000
 #define MAX_STEER_SPEED_MA 1 //this controls the max steering current i.e strength 
@@ -118,7 +118,7 @@
 // #define STEADY_STATE_CURRENT_MULT 0
 #define STEER_DEADBAND_DEG 0.5 //VESC already has a limit of min ERPM := 600. Enything bellow this is already used as 0.
 #define PID_INTERVAL_MS 10
-#define STEER_VESC_ID 2
+#define STEER_VESC_ID 125
 #define RIGHT_LSWITCH PF_14
 #define LEFT_LSWITCH PF_15
 #define ENABLE_LSWITCH      //comment to remove limit switches behaviour

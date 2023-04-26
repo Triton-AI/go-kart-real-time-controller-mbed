@@ -41,7 +41,7 @@
 
 #define VESC_RPM_EXTENDED_ID 0x03
 #define VESC_CURRENT_EXTENDED_ID 0x01
-#define VESC_POSITION_EXTENDED_ID 0x04
+#define VESC_POSITION_EXTENDED_ID 4
 #define VESC_STATUS_EXTENDED_ID_PACKET_1 0x09
 #define VESC_STATUS_EXTENDED_ID_PACKET_4 0x10
 
@@ -547,17 +547,16 @@ void ActuationController::steering_thread_impl()
   {
     steering_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
     *cmd = clamp<float>(*cmd, deg_to_rad<float, float>(MIN__WHEEL_STEER_DEG), deg_to_rad<float, float>(MAX__WHEEL_STEER_DEG));
-    *cmd = map_steer2motor(*cmd) + M_PI;
+    *cmd = map_steer2motor(*cmd);
     *cmd = clamp<float>(*cmd, deg_to_rad<float, float>(MIN_STEER_DEG), deg_to_rad<float, float>(MAX_STEER_DEG));
     angle_steering_cmd = *cmd;
     const int32_t vesc_steering_cmd = rad_to_deg<float, int32_t>(angle_steering_cmd);
-    printf("Steering Angle (deg), %d", vesc_steering_cmd);
+    std::cout << "Steering Angle (deg): " << vesc_steering_cmd << "\n";
     delete cmd;
-    // uint8_t message[4] = {0, 0, 0, 0};
-    // int32_t idx = 0;
-    // buffer_append_int32(&message[0], vesc_steering_cmd, &idx);
-    // CAN_STEER.write(CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0],
-    //                               sizeof(message), CANData, CANExtended));
+    uint8_t message[4] = {0, 0, 0, 0};
+    int32_t idx = 0;
+    buffer_append_uint32(&message[0], vesc_steering_cmd * 1000000, &idx);
+    CAN_STEER.write(CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended));
   }
 }
 

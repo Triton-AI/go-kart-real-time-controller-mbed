@@ -198,7 +198,7 @@ void Controller::packet_callback(const ControlGkcPacket &packet) {
 }
 
 void Controller::set_actuation_values(float steerVal, float throttleVal, float breakVal){
-    //std::cout << "I am being called!!!!!" << std::endl;
+    // std::cout << "I am being called!!!!!" << std::endl;
     actuation_.set_throttle_cmd(new float(throttleVal)); //was set to steer before
     //std::cout << "throttle: " << throttleVal << endl;
     float h1 = actuation_.get_throttle_cmd();
@@ -208,7 +208,7 @@ void Controller::set_actuation_values(float steerVal, float throttleVal, float b
     float h2 = actuation_.get_brake_cmd();
     //std::cout << h2 << std::endl;
     actuation_.set_steering_cmd(new float(steerVal));//set to break
-    //std::cout << "steering: " << steerVal << endl;
+    // std::cout << "steering: " << steerVal << endl;
     float h3 = actuation_.get_steering_cmd();
     //std::cout <<"from controller.cpp " << h3 <<  std::endl;
 
