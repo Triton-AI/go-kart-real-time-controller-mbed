@@ -555,7 +555,7 @@ void ActuationController::steering_thread_impl()
     delete cmd;
     uint8_t message[4] = {0, 0, 0, 0};
     int32_t idx = 0;
-    buffer_append_uint32(&message[0], vesc_steering_cmd * 1000000, &idx);
+    buffer_append_uint32(&message[0], vesc_steering_cmd * -1000000, &idx);
     CAN_STEER.write(CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended));
   }
 }
