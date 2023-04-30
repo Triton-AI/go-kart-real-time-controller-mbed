@@ -427,10 +427,10 @@ ActuationController::ActuationController(ILogger *logger)
     // CAN_STEER.write(CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended));
 
 
-    throttle_thread.start(
-        callback(this, &ActuationController::throttle_thread_impl));
+    // throttle_thread.start(
+    //    callback(this, &ActuationController::throttle_thread_impl));
     steering_thread.start(
-        callback(this, &ActuationController::steering_thread_impl));
+        callback(this, &ActuationController::try_both_thread_impl));
   
     /*
     // We don't need this anymore because we will be utilizing the VESC position control 
@@ -438,9 +438,9 @@ ActuationController::ActuationController(ILogger *logger)
         callback(this, &ActuationController::steering_pid_thread_impl));
     */
 
-    brake_thread.start(callback(this, &ActuationController::brake_thread_impl));
-    sensor_poll_thread.start(
-        callback(this, &ActuationController::sensor_poll_thread_impl));
+    // brake_thread.start(callback(this, &ActuationController::brake_thread_impl));
+    // sensor_poll_thread.start(
+    //     callback(this, &ActuationController::sensor_poll_thread_impl));
 }
 
 /**
@@ -482,6 +482,51 @@ void ActuationController::throttle_thread_impl()
     CAN_THROTTLE.write(CANMessage(VESC_RPM_ID(THROTTLE_VESC_ID), &message[0],
                               sizeof(message), CANData, CANExtended));
   }
+}
+
+void ActuationController::try_both_thread_impl()
+{
+    float *throttle_cmd;
+    float *steering_cmd;
+
+    while (!ThisThread::flags_get()) //Forever until thread is killed
+    {
+        throttle_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &throttle_cmd);
+        current_throttle_cmd = clamp<float>(*throttle_cmd, -MAX_THROTTLE_MS, MAX_THROTTLE_MS);
+        const int32_t vesc_current_cmd = current_throttle_cmd / CONST_ERPM2MS;
+        delete throttle_cmd;
+
+
+        uint8_t message[4] = {0, 0, 0, 0};
+        int32_t idx = 0;
+        buffer_append_int32(&message[0], vesc_current_cmd, &idx);
+        if(!CAN_THROTTLE.write(CANMessage(VESC_RPM_ID(THROTTLE_VESC_ID), &message[0],
+                                sizeof(message), CANData, CANExtended))){
+                                    std::cout << "Failed sending throttle msg\n";
+                                }
+
+
+
+        steering_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &steering_cmd);
+        *steering_cmd = clamp<float>(*steering_cmd, deg_to_rad<float, float>(MIN__WHEEL_STEER_DEG), deg_to_rad<float, float>(MAX__WHEEL_STEER_DEG));
+        *steering_cmd = map_steer2motor(*steering_cmd);
+        *steering_cmd = clamp<float>(*steering_cmd, deg_to_rad<float, float>(MIN_STEER_DEG), deg_to_rad<float, float>(MAX_STEER_DEG));
+        angle_steering_cmd = *steering_cmd; //  this is in radians
+        const float vesc_steering_cmd = rad_to_deg<float, float>(fmod(angle_steering_cmd + deg_to_rad<float, float>(STEERING_CAL_OFF), 2 * M_PI));
+
+        delete steering_cmd;
+
+        idx = 0;
+       
+        buffer_append_int32(&message[0], vesc_steering_cmd * -1000000, &idx);
+        if(!CAN_STEER.write(CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended))){
+            std::cout << "Failed sending steer msg\n";;
+        }
+
+        if(CAN_2.tderror()) {
+            std::cout << "Write overflow\n";
+        }
+    }
 }
 
 /**

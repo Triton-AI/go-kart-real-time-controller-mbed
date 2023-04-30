@@ -92,6 +92,7 @@ protected:
   void steer_speed_pid_thread_impl();
   void brake_thread_impl();
   void sensor_poll_thread_impl();
+  void try_both_thread_impl();
 
   PidController steering_pid;
   PidController steering_vel_pid;
