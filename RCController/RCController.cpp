@@ -68,8 +68,11 @@ namespace gkc{
             // std::cout << "Not Gathering" << std::endl;
             noMsgCounter++;
         }
-        if(emoOn || noMsgCounter > 10)
+        
+        if(emoOn || noMsgCounter > 10) {
             currThrottle = 0;
+            currSteer = 0;
+        };
         // std::cout << std::setprecision(2) << currThrottle << " " << std::setprecision(2) << currSteer << " " << emoOn << std::endl;
 
         cont_p->set_actuation_values(currSteer, currThrottle, currBreak);

@@ -60,7 +60,7 @@ double Steering(int steerVal){
 
 double Throttle(int throttleVal){
     double normalized_value = normalize(throttleVal);
-    if(normalized_value < .1) normalized_value = 0;
+    // if(normalized_value < .1) normalized_value = 0;
     return normalized_value;
 
 }

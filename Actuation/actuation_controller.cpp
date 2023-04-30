@@ -11,9 +11,11 @@
 
 #include "actuation_controller.hpp"
 #include "Kernel.h"
+#include "PinNamesTypes.h"
 #include "PwmIn.h"
 #include "ThisThread.h"
 #include "Thread.h"
+#include "can_helper.h"
 #include "config.hpp"
 #include "global_profilers.hpp"
 #include "vesc_can_helper.hpp"
@@ -40,7 +42,7 @@
 */
 
 #define VESC_RPM_EXTENDED_ID 0x03
-#define VESC_CURRENT_EXTENDED_ID 0x01
+#define VESC_CURRENT_EXTENDED_ID 1
 #define VESC_POSITION_EXTENDED_ID 4
 #define VESC_STATUS_EXTENDED_ID_PACKET_1 0x09
 #define VESC_STATUS_EXTENDED_ID_PACKET_4 0x10
@@ -339,8 +341,9 @@ void ActuationController::populate_reading(SensorGkcPacket &pkt)
 PwmIn steer_encoder(STEER_ENCODER_PIN);
 CAN CAN_1(CAN1_RX, CAN1_TX, CAN1_BAUDRATE);
 CAN CAN_2(CAN2_RX, CAN2_TX, CAN2_BAUDRATE);
-DigitalIn leftLimitSwitch(LEFT_LSWITCH);
-DigitalIn rightLimitSwitch(RIGHT_LSWITCH);
+DigitalIn leftLimitSwitch(RIGHT_LSWITCH);
+DigitalIn rightLimitSwitch(LEFT_LSWITCH);
+Timer timey;
 
 PidCoefficients steering_pid_coeff{STEER_P,
                                     STEER_I,
@@ -378,24 +381,66 @@ ActuationController::ActuationController(ILogger *logger)
       current_steering_cmd(deg_to_rad<int32_t, float>(NEUTRAL_STEER_DEG)),
       steering_pid("steering", steering_pid_coeff), logger(logger)
 {
-  // std::cout << "Initializing actuation" << std::endl;
-  leftLimitSwitch.mode(PullUp);
-  rightLimitSwitch.mode(PullUp);
-  throttle_thread.start(
-      callback(this, &ActuationController::throttle_thread_impl));
-  steering_thread.start(
-      callback(this, &ActuationController::steering_thread_impl));
-  
-  /*
-  // We don't need this anymore because we will be utilizing the VESC position control 
-  steering_pid_thread.start(
-      callback(this, &ActuationController::steering_pid_thread_impl));
-  */
+    // std::cout << "Initializing actuation" << std::endl;
+    
+    leftLimitSwitch.mode(PullUp);
+    rightLimitSwitch.mode(PullUp);
 
-  brake_thread.start(callback(this, &ActuationController::brake_thread_impl));
-  sensor_poll_thread.start(
-      callback(this, &ActuationController::sensor_poll_thread_impl));
-  // std::cout << "Actuation initialized" << std::endl;
+    // timey.reset();
+    // timey.start();
+    // int speed = STEERING_CALIB_CURRENT;
+    // bool switched = false;
+
+    // This 3 second process runs current for 3 seconds, because for some reason the absolute position only works after sending current for some time
+    // This goes to each toggle switch and goes back
+    // while(chrono::duration_cast<chrono::seconds>(timey.elapsed_time()).count() < 0) { 
+
+    //     if (!rightLimitSwitch && !switched) {
+    //         speed *= -1;
+    //         switched = true;
+    //     }
+
+    //     if (!leftLimitSwitch && !switched) {
+    //         speed *= -1;
+    //         switched = true;
+    //     }
+
+    //     if(leftLimitSwitch && rightLimitSwitch) {
+    //         switched = false;
+    //     }
+        
+    //     std::cout << speed << "\n";
+
+    //     uint8_t message[4] = {0, 0, 0, 0};
+    //     int32_t idx = 0;
+
+    //     buffer_append_uint32(&message[0], speed, &idx);
+    //     CAN_STEER.write(CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended));
+    // }
+    
+    // timey.stop();
+
+    // // Send 0 current to stop the motor
+    // uint8_t message[4] = {0, 0, 0, 0};
+    // int32_t idx = 0;
+    // buffer_append_uint32(&message[0], 0, &idx);
+    // CAN_STEER.write(CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended));
+
+
+    throttle_thread.start(
+        callback(this, &ActuationController::throttle_thread_impl));
+    steering_thread.start(
+        callback(this, &ActuationController::steering_thread_impl));
+  
+    /*
+    // We don't need this anymore because we will be utilizing the VESC position control 
+    steering_pid_thread.start(
+        callback(this, &ActuationController::steering_pid_thread_impl));
+    */
+
+    brake_thread.start(callback(this, &ActuationController::brake_thread_impl));
+    sensor_poll_thread.start(
+        callback(this, &ActuationController::sensor_poll_thread_impl));
 }
 
 /**
@@ -432,9 +477,10 @@ void ActuationController::throttle_thread_impl()
     delete cmd;
     uint8_t message[4] = {0, 0, 0, 0};
     int32_t idx = 0;
+    // std::cout << "RPM: " << vesc_current_cmd << "\n";
     buffer_append_int32(&message[0], vesc_current_cmd, &idx);
     CAN_THROTTLE.write(CANMessage(VESC_RPM_ID(THROTTLE_VESC_ID), &message[0],
-                                  sizeof(message), CANData, CANExtended));
+                              sizeof(message), CANData, CANExtended));
   }
 }
 
@@ -543,21 +589,48 @@ void ActuationController::steering_thread_impl()
   // Wait for 1 second before starting to allow the rest of the system to initialize
   ThisThread::sleep_for(std::chrono::milliseconds(1000));
   float *cmd;
+  float prev_vesc_steering_cmd = 0;
   while (!ThisThread::flags_get()) //Forever until thread is killed
   {
     steering_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
     *cmd = clamp<float>(*cmd, deg_to_rad<float, float>(MIN__WHEEL_STEER_DEG), deg_to_rad<float, float>(MAX__WHEEL_STEER_DEG));
     *cmd = map_steer2motor(*cmd);
     *cmd = clamp<float>(*cmd, deg_to_rad<float, float>(MIN_STEER_DEG), deg_to_rad<float, float>(MAX_STEER_DEG));
-    angle_steering_cmd = *cmd;
-    const int32_t vesc_steering_cmd = rad_to_deg<float, int32_t>(angle_steering_cmd);
-    std::cout << "Steering Angle (deg): " << vesc_steering_cmd << "\n";
+    angle_steering_cmd = *cmd; //  this is in radians
+    const float vesc_steering_cmd = rad_to_deg<float, float>(fmod(angle_steering_cmd + deg_to_rad<float, float>(STEERING_CAL_OFF), 2 * M_PI));
+    // std::cout << "Steering Angle (Deg): " << vesc_steering_cmd << "\n";
     delete cmd;
     uint8_t message[4] = {0, 0, 0, 0};
     int32_t idx = 0;
-    buffer_append_uint32(&message[0], vesc_steering_cmd * -1000000, &idx);
-    CAN_STEER.write(CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended));
-  }
+
+    // This block of code only allows position control in between the limit switches.
+    if (!rightLimitSwitch) {
+
+        if(vesc_steering_cmd > prev_vesc_steering_cmd){
+            buffer_append_uint32(&message[0], vesc_steering_cmd, &idx);
+            CAN_STEER.write(CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended));
+        }else{
+            buffer_append_uint32(&message[0], 0, &idx);
+            CAN_STEER.write(CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended));
+        }
+
+    } else if(!leftLimitSwitch) {
+
+        if(vesc_steering_cmd < prev_vesc_steering_cmd){
+            buffer_append_uint32(&message[0], vesc_steering_cmd, &idx);
+            CAN_STEER.write(CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended));
+        }else{
+            buffer_append_uint32(&message[0], 0, &idx);
+            CAN_STEER.write(CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended));
+        }
+
+    }
+    else {
+        prev_vesc_steering_cmd = vesc_steering_cmd;
+        buffer_append_int32(&message[0], vesc_steering_cmd * -1000000, &idx);
+        CAN_STEER.write(CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended));
+    }
+   }
 }
 
 
