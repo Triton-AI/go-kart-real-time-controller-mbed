@@ -80,7 +80,7 @@
 #define MAX_THROTTLE_SPEED_ERPM 3000
 #define MAX_THROTTLE_CURRENT_MA 5000
 #define MAX_THROTTLE_MS 10
-#define CONST_ERPM2MS 0.0005861111108
+#define CONST_ERPM2MS 0.0000761111108
 //#define THROTTLE_ERPM_TO_RPS_RATIO 0.1
 #define THROTTLE_VESC_ID 1
 // Braking
@@ -89,8 +89,8 @@
 #define MIN_BRAKE_VAL 1500
 // Steering
 #define CAN_STEER CAN_2 // Which CAN bus to use for steer [CAN_1 | CAN_2]
-#define MAX_STEER_DEG 40.0
-#define MIN_STEER_DEG -40.0
+#define MAX_STEER_DEG 50.0
+#define MIN_STEER_DEG -50.0
 #define VIRTUAL_LIMIT_OFF 5
 #define NEUTRAL_STEER_DEG 0.0
 #define STEERING_CAL_OFF 0 //this changes the calibration angle

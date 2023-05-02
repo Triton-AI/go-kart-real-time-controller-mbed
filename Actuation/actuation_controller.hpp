@@ -12,6 +12,7 @@
 #ifndef ACTUATION_CONTROLLER_HPP_
 #define ACTUATION_CONTROLLER_HPP_
 
+#include "InterfaceCAN.h"
 #include "Mutex.h"
 #include "Queue.h"
 #include "logger.hpp"
@@ -20,6 +21,7 @@
 #include "sensor_reader.hpp"
 #include "watchable.hpp"
 #include "watchdog.hpp"
+#include <cstdint>
 
 namespace tritonai {
 namespace gkc {
@@ -72,12 +74,14 @@ protected:
   Queue<float, 10> throttle_cmd_queue;
   Queue<float, 10> steering_cmd_queue;
   Queue<float, 10> brake_cmd_queue;
+  Queue<CANMessage, 50> can_cmd_queue;
 
   float current_throttle_cmd{0.0};
   float current_steering_cmd{0.0};
   float angle_steering_cmd{0.0};
   float current_brake_cmd{0.0};
 
+  Thread can_transmit_thread;
   Thread throttle_thread;
   Thread steering_thread;
   Thread steering_pid_thread;
@@ -92,7 +96,7 @@ protected:
   void steer_speed_pid_thread_impl();
   void brake_thread_impl();
   void sensor_poll_thread_impl();
-  void try_both_thread_impl();
+  void can_transmit_thread_impl();
 
   PidController steering_pid;
   PidController steering_vel_pid;

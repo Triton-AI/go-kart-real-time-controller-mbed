@@ -69,7 +69,7 @@ namespace gkc{
             noMsgCounter++;
         }
         
-        if(emoOn || noMsgCounter > 10) {
+        if(noMsgCounter > 10) {
             currThrottle = 0;
             currSteer = 0;
         };

@@ -10,6 +10,7 @@
  */
 
 #include "actuation_controller.hpp"
+#include "InterfaceCAN.h"
 #include "Kernel.h"
 #include "PinNamesTypes.h"
 #include "PwmIn.h"
@@ -22,6 +23,7 @@
 #include "watchdog.hpp"
 #include <chrono>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <map>
@@ -386,62 +388,26 @@ ActuationController::ActuationController(ILogger *logger)
     leftLimitSwitch.mode(PullUp);
     rightLimitSwitch.mode(PullUp);
 
-    // timey.reset();
-    // timey.start();
-    // int speed = STEERING_CALIB_CURRENT;
-    // bool switched = false;
+    CAN_2.reset();
+    CAN_2.frequency(CAN2_BAUDRATE);
 
-    // This 3 second process runs current for 3 seconds, because for some reason the absolute position only works after sending current for some time
-    // This goes to each toggle switch and goes back
-    // while(chrono::duration_cast<chrono::seconds>(timey.elapsed_time()).count() < 0) { 
-
-    //     if (!rightLimitSwitch && !switched) {
-    //         speed *= -1;
-    //         switched = true;
-    //     }
-
-    //     if (!leftLimitSwitch && !switched) {
-    //         speed *= -1;
-    //         switched = true;
-    //     }
-
-    //     if(leftLimitSwitch && rightLimitSwitch) {
-    //         switched = false;
-    //     }
-        
-    //     std::cout << speed << "\n";
-
-    //     uint8_t message[4] = {0, 0, 0, 0};
-    //     int32_t idx = 0;
-
-    //     buffer_append_uint32(&message[0], speed, &idx);
-    //     CAN_STEER.write(CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended));
-    // }
-    
-    // timey.stop();
-
-    // // Send 0 current to stop the motor
-    // uint8_t message[4] = {0, 0, 0, 0};
-    // int32_t idx = 0;
-    // buffer_append_uint32(&message[0], 0, &idx);
-    // CAN_STEER.write(CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended));
+    CAN_1.reset();
+    CAN_1.frequency(CAN2_BAUDRATE);
 
 
-    // throttle_thread.start(
-    //    callback(this, &ActuationController::throttle_thread_impl));
+    can_transmit_thread.start(
+        callback(this, &ActuationController::can_transmit_thread_impl));
+    throttle_thread.start(
+       callback(this, &ActuationController::throttle_thread_impl));
     steering_thread.start(
-        callback(this, &ActuationController::try_both_thread_impl));
-  
-    /*
-    // We don't need this anymore because we will be utilizing the VESC position control 
-    steering_pid_thread.start(
-        callback(this, &ActuationController::steering_pid_thread_impl));
-    */
+        callback(this, &ActuationController::steering_thread_impl));
+
 
     // brake_thread.start(callback(this, &ActuationController::brake_thread_impl));
     // sensor_poll_thread.start(
     //     callback(this, &ActuationController::sensor_poll_thread_impl));
 }
+
 
 /**
  * @brief This is a function ran on a thread that runs continously to control the throttle actuator of the autonomous kart. It retrieves the desired throttle command from the throttle_cmd_queue and converts it to a command that can be sent to the VESC (motor controller) using the CAN bus.
@@ -468,150 +434,43 @@ ActuationController::ActuationController(ILogger *logger)
 
 void ActuationController::throttle_thread_impl()
 {
+  ThisThread::sleep_for(1s);
+
   float *cmd;
-  while (!ThisThread::flags_get()) //Forever until thread is killed
+  while (!ThisThread::flags_get())
   {
     throttle_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
     current_throttle_cmd = clamp<float>(*cmd, -MAX_THROTTLE_MS, MAX_THROTTLE_MS);
     const int32_t vesc_current_cmd = current_throttle_cmd / CONST_ERPM2MS;
     delete cmd;
+
     uint8_t message[4] = {0, 0, 0, 0};
     int32_t idx = 0;
-    // std::cout << "RPM: " << vesc_current_cmd << "\n";
+    std::cout << "RPM: " << vesc_current_cmd << "\n";
     buffer_append_int32(&message[0], vesc_current_cmd, &idx);
-    CAN_THROTTLE.write(CANMessage(VESC_RPM_ID(THROTTLE_VESC_ID), &message[0],
-                              sizeof(message), CANData, CANExtended));
+    can_cmd_queue.try_put(new CANMessage(VESC_RPM_ID(THROTTLE_VESC_ID), &message[0],
+                            sizeof(message), CANData, CANExtended));
   }
 }
 
-void ActuationController::try_both_thread_impl()
+void ActuationController::can_transmit_thread_impl()
 {
-    float *throttle_cmd;
-    float *steering_cmd;
+    ThisThread::sleep_for(1s);
+    CANMessage *c_msg;
 
-    while (!ThisThread::flags_get()) //Forever until thread is killed
-    {
-        throttle_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &throttle_cmd);
-        current_throttle_cmd = clamp<float>(*throttle_cmd, -MAX_THROTTLE_MS, MAX_THROTTLE_MS);
-        const int32_t vesc_current_cmd = current_throttle_cmd / CONST_ERPM2MS;
-        delete throttle_cmd;
+    while (!ThisThread::flags_get()) {
+        can_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &c_msg);
 
-
-        uint8_t message[4] = {0, 0, 0, 0};
-        int32_t idx = 0;
-        buffer_append_int32(&message[0], vesc_current_cmd, &idx);
-        if(!CAN_THROTTLE.write(CANMessage(VESC_RPM_ID(THROTTLE_VESC_ID), &message[0],
-                                sizeof(message), CANData, CANExtended))){
-                                    std::cout << "Failed sending throttle msg\n";
-                                }
-
-
-
-        steering_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &steering_cmd);
-        *steering_cmd = clamp<float>(*steering_cmd, deg_to_rad<float, float>(MIN__WHEEL_STEER_DEG), deg_to_rad<float, float>(MAX__WHEEL_STEER_DEG));
-        *steering_cmd = map_steer2motor(*steering_cmd);
-        *steering_cmd = clamp<float>(*steering_cmd, deg_to_rad<float, float>(MIN_STEER_DEG), deg_to_rad<float, float>(MAX_STEER_DEG));
-        angle_steering_cmd = *steering_cmd; //  this is in radians
-        const float vesc_steering_cmd = rad_to_deg<float, float>(fmod(angle_steering_cmd + deg_to_rad<float, float>(STEERING_CAL_OFF), 2 * M_PI));
-
-        delete steering_cmd;
-
-        idx = 0;
-       
-        buffer_append_int32(&message[0], vesc_steering_cmd * -1000000, &idx);
-        if(!CAN_STEER.write(CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended))){
-            std::cout << "Failed sending steer msg\n";;
+        if(!CAN_2.write(*c_msg)) {
+            std::cout << "Failed to send CAN message\n";
+            CAN_2.reset();
+            CAN_2.frequency(CAN2_BAUDRATE);
         }
+        
+        delete c_msg;
 
-        if(CAN_2.tderror()) {
-            std::cout << "Write overflow\n";
-        }
+       // ThisThread::sleep_for(2ms);
     }
-}
-
-/**
- * @brief The ActuationController::steering_pid_thread_impl() function is a thread that runs in the background to control the steering actuator of the autonomous kart using a PID controller. It retrieves the desired steering command from the current_steering_cmd member variable and calculates the necessary output for the steering PID controller. The function also checks for limit switches, adds a constant to the motor output proportional to the displacement from the center, and checks if it has been without power.
- *
- * It uses current_steering_cmd as the angle (in rad) the sttering motor needs to achieve. Note that is the angle of the motor, not the angle the wheels make.
- *
- * The MRC commands the steering position as the angles of the wheels, but ActuationController::steering_thread_impl() already takes care of this conversion using the map_steer2motor() function. This conversion is defined in config.hpp as STERING_MAPPTING
- *
- * @deprecated This is not necessary anymore because we will be utilizing VESC position control.
- */
-
-void ActuationController::steering_pid_thread_impl()
-{
-
-  // Wait for 1 second before starting to allow the rest of the system to initialize
-  ThisThread::sleep_for(std::chrono::milliseconds(1000));
-  static constexpr std::chrono::milliseconds pid_interval(
-      static_cast<uint32_t>(PID_INTERVAL_MS));
-
-  static int movelessTime = 0;
-  static double lastMeasurement, lastControll;
-
-  while (!ThisThread::flags_get()) //Forever until thread is killed
-  {
-    //If it hasn't been mooving lately reset the integral of the PID. (this prevents the PID integral accumulating a lot when the emergecy stop is active. The isue was that when the emergency stop was deactivated and the kart active, because of the acumulated integral error the stering would swing very hard to one side)
-    if (movelessTime > 10)
-      steering_pid.reset_integral_error(0.0);
-    
-    sensors.steering_output = static_cast<int32_t>(steering_pid.update(
-        current_steering_cmd - sensors.steering_rad + 2 * M_PI * sensors.steering_wraps, PID_INTERVAL_MS / 1000.0));
-
-    //increment the not moving time if necesary
-    if (abs(sensors.steering_rad - lastMeasurement) > deg_to_rad<float, float>(STEER_DEADBAND_DEG))
-      movelessTime = 0;
-    else
-      movelessTime++;
-
-    lastMeasurement = sensors.steering_rad;
-    lastControll = current_steering_cmd;
-
-    //if steering is in position reset integlal error of the PID
-    if (abs(sensors.steering_rad - current_steering_cmd) < deg_to_rad<float, float>(STEER_DEADBAND_DEG))
-    {
-      steering_pid.reset_integral_error(0.0);
-      sensors.steering_output = 0;
-    }
-    uint8_t message[4] = {0, 0, 0, 0};
-    int32_t idx = 0;
-
-    //Add a constant to the motor output proportional to the displacement from the center. (The kart is heavy, so it needs force to keed the steering held on a side. This helps with this. It should be 0 if the kart is in the air as this force is not present in that situation)
-    if (current_steering_cmd - 3.14 > 0)
-        sensors.steering_output += STEADY_STATE_CURRENT_MULT_POS * (current_steering_cmd - 3.14);
-    else
-        sensors.steering_output += STEADY_STATE_CURRENT_MULT_NEG * (current_steering_cmd - 3.14);
-    sensors.steering_output = clamp<float>(sensors.steering_output, MIN_STEER_CURRENT_MA, MAX_STEER_CURRENT_MA);
-
-    //Check if the steeting is out of range with the limit switches
-    if ((!rightLimitSwitch && sensors.steering_output < 0) || (!leftLimitSwitch && sensors.steering_output > 0)
-    ||  (sensors.steering_rad > deg_to_rad<float,float>(MAX_STEER_DEG - VIRTUAL_LIMIT_OFF) && sensors.steering_output > 0) || 
-   (sensors.steering_rad < deg_to_rad<float,float>(MIN_STEER_DEG + VIRTUAL_LIMIT_OFF)  && sensors.steering_output < 0))
-    {
-      sensors.steering_output = 0;
-      buffer_append_int32(&message[0], sensors.steering_output, &idx);
-      CAN_STEER.write(CANMessage(VESC_RPM_ID(STEER_VESC_ID), &message[0],
-                                  sizeof(message), CANData, CANExtended));
-      steering_pid.reset_integral_error(0.0);
-    }
-    //limit the speed of steering output
-    else if(abs(sensors.steering_speed) > 1.5){
-        sensors.steering_output = 0;
-        buffer_append_int32(&message[0], sensors.steering_output, &idx);
-        CAN_STEER.write(CANMessage(VESC_RPM_ID(STEER_VESC_ID), &message[0],
-                                  sizeof(message), CANData, CANExtended));
-        steering_pid.reset_integral_error(0.0);
-    }
-    else
-    {
-      buffer_append_int32(&message[0], sensors.steering_output, &idx);
-      CAN_STEER.write(CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0],
-                                  sizeof(message), CANData, CANExtended));
-    }
-    ThisThread::sleep_for(pid_interval); //Sleep for PID_INTERVAL_MS (defined at config.hpp)
-  }
-  
 }
 
 
@@ -632,7 +491,7 @@ void ActuationController::steering_pid_thread_impl()
 void ActuationController::steering_thread_impl()
 {
   // Wait for 1 second before starting to allow the rest of the system to initialize
-  ThisThread::sleep_for(std::chrono::milliseconds(1000));
+  ThisThread::sleep_for(1s);
   float *cmd;
   float prev_vesc_steering_cmd = 0;
   while (!ThisThread::flags_get()) //Forever until thread is killed
@@ -645,36 +504,42 @@ void ActuationController::steering_thread_impl()
     const float vesc_steering_cmd = rad_to_deg<float, float>(fmod(angle_steering_cmd + deg_to_rad<float, float>(STEERING_CAL_OFF), 2 * M_PI));
     // std::cout << "Steering Angle (Deg): " << vesc_steering_cmd << "\n";
     delete cmd;
+
     uint8_t message[4] = {0, 0, 0, 0};
     int32_t idx = 0;
+
+    CANMessage *cMsg;
 
     // This block of code only allows position control in between the limit switches.
     if (!rightLimitSwitch) {
 
         if(vesc_steering_cmd > prev_vesc_steering_cmd){
             buffer_append_uint32(&message[0], vesc_steering_cmd, &idx);
-            CAN_STEER.write(CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended));
+            cMsg = new CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended);
         }else{
             buffer_append_uint32(&message[0], 0, &idx);
-            CAN_STEER.write(CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended));
+            cMsg = new CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended);
         }
 
     } else if(!leftLimitSwitch) {
 
         if(vesc_steering_cmd < prev_vesc_steering_cmd){
             buffer_append_uint32(&message[0], vesc_steering_cmd, &idx);
-            CAN_STEER.write(CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended));
+            cMsg = new CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended);
         }else{
             buffer_append_uint32(&message[0], 0, &idx);
-            CAN_STEER.write(CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended));
+            cMsg = new CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended);
         }
 
     }
     else {
         prev_vesc_steering_cmd = vesc_steering_cmd;
         buffer_append_int32(&message[0], vesc_steering_cmd * -1000000, &idx);
-        CAN_STEER.write(CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended));
+        cMsg = new CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0], sizeof(message), CANData, CANExtended);
     }
+
+    can_cmd_queue.try_put(cMsg);
+    delete cMsg;
    }
 }
 
@@ -725,6 +590,7 @@ void ActuationController::brake_thread_impl()
     CAN_BRAKE.write(CANMessage(0x00FF0000, message, 8, CANData, CANExtended)); //0x00FF0000 is the CAN ID for the linear actuator
   }
 }
+
 
 /**
 * 
