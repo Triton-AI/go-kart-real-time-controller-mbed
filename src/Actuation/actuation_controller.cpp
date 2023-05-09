@@ -538,7 +538,7 @@ void ActuationController::steering_thread_impl() {
   // Wait for 1 second before starting to allow the rest of the system to
   // initialize
   ThisThread::sleep_for(1s);
-
+  
   unique_ptr<float> cmd;
   float prev_vesc_steering_cmd = 0;
   while (!ThisThread::flags_get()) // Forever until thread is killed
