@@ -196,11 +196,11 @@ void Controller::packet_callback(const ControlGkcPacket &packet) {
   send_log(LogPacket::Severity::INFO, s.str());
   cout << "Throttle: ";
   std::cout << std::fixed << std::setprecision(2) << static_cast<float>(packet.throttle) << std::endl;
-  //if (get_state() == GkcLifecycle::Active) {
+  if (get_state() == GkcLifecycle::Active) {
     actuation_.set_throttle_cmd(new float(packet.throttle));
     actuation_.set_brake_cmd(new float(packet.brake));
     actuation_.set_steering_cmd(new float(packet.steering));
-  //}
+  }
 }
 
 void Controller::set_actuation_values(float steerVal, float throttleVal,

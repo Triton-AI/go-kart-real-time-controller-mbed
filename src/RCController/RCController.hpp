@@ -149,7 +149,7 @@ private:
     float rolling_average;
     float currSteer, currThrottle, currBreak;
     Controller* cont_p;
-
+    bool remoteControls;
     EventQueue sensor_write;
     Translation Map;
 };
