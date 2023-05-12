@@ -74,7 +74,7 @@ namespace gkc{
         };
         // std::cout << std::setprecision(2) << currThrottle << " " << std::setprecision(2) << currSteer << " " << emoOn << std::endl;
 
-        cont_p->set_actuation_values(currSteer, currThrottle, currBreak);
+        //cont_p->set_actuation_values(currSteer, currThrottle, currBreak);
     }
 }
 

@@ -433,7 +433,8 @@ ActuationController::ActuationController(ILogger *logger)
       callback(this, &ActuationController::steering_thread_impl));
 
   // brake_thread.start(callback(this,
-  // &ActuationController::brake_thread_impl)); sensor_poll_thread.start(
+  // &ActuationController::brake_thread_impl));
+  // sensor_poll_thread.start(
   //     callback(this, &ActuationController::sensor_poll_thread_impl));
 }
 
@@ -482,10 +483,10 @@ ActuationController::ActuationController(ILogger *logger)
 void ActuationController::throttle_thread_impl() {
   ThisThread::sleep_for(1s);
 
-  unique_ptr<float> cmd;
+  float *cmd;
   while (!ThisThread::flags_get()) {
-    float *raw_ptr = cmd.get();
-    throttle_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &raw_ptr);
+    throttle_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
+    // std::cout << "RAW: " << static_cast<int>(*cmd) << "\n";
     current_throttle_cmd =
         clamp<float>(*cmd, -MAX_THROTTLE_MS, MAX_THROTTLE_MS);
     const int32_t vesc_current_cmd = current_throttle_cmd / CONST_ERPM2MS;
@@ -497,24 +498,27 @@ void ActuationController::throttle_thread_impl() {
     can_cmd_queue.try_put(new CANMessage(VESC_RPM_ID(THROTTLE_VESC_ID),
                                          &message[0], sizeof(message), CANData,
                                          CANExtended));
+
+    delete cmd;
   }
 }
 
 void ActuationController::can_transmit_thread_impl() {
   ThisThread::sleep_for(1s);
 
-  unique_ptr<CANMessage> c_msg;
+  CANMessage *c_msg;
   while (!ThisThread::flags_get()) {
-    CANMessage *raw_ptr = c_msg.get();
-    can_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &raw_ptr);
+    can_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &c_msg);
 
-    while (!CAN_2.write(*c_msg)) {
+    if (!CAN_2.write(*c_msg)) {
       std::cout << "Failed to send CAN message\n";
       CAN_2.reset();
       CAN_2.frequency(CAN2_BAUDRATE);
     }
 
-    // ThisThread::sleep_for(2ms);
+    delete c_msg;
+
+    ThisThread::sleep_for(2ms);
   }
 }
 
@@ -538,13 +542,11 @@ void ActuationController::steering_thread_impl() {
   // Wait for 1 second before starting to allow the rest of the system to
   // initialize
   ThisThread::sleep_for(1s);
-  
-  unique_ptr<float> cmd;
+  float *cmd;
   float prev_vesc_steering_cmd = 0;
   while (!ThisThread::flags_get()) // Forever until thread is killed
   {
-    float *raw_ptr = cmd.get();
-    steering_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &raw_ptr);
+    steering_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
     *cmd = clamp<float>(*cmd, deg_to_rad<float, float>(MIN__WHEEL_STEER_DEG),
                         deg_to_rad<float, float>(MAX__WHEEL_STEER_DEG));
     *cmd = map_steer2motor(*cmd);
@@ -555,11 +557,12 @@ void ActuationController::steering_thread_impl() {
         fmod(angle_steering_cmd + deg_to_rad<float, float>(STEERING_CAL_OFF),
              2 * M_PI));
     // std::cout << "Steering Angle (Deg): " << vesc_steering_cmd << "\n";
+    delete cmd;
 
     uint8_t message[4] = {0, 0, 0, 0};
     int32_t idx = 0;
 
-    unique_ptr<CANMessage> cMsg;
+    CANMessage *cMsg;
 
     // This block of code only allows position control in between the limit
     // switches.
@@ -567,32 +570,34 @@ void ActuationController::steering_thread_impl() {
 
       if (vesc_steering_cmd > prev_vesc_steering_cmd) {
         buffer_append_uint32(&message[0], vesc_steering_cmd, &idx);
-        cMsg.reset(new CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0],
-                              sizeof(message), CANData, CANExtended));
+        cMsg = new CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0],
+                              sizeof(message), CANData, CANExtended);
       } else {
         buffer_append_uint32(&message[0], 0, &idx);
-        cMsg.reset(new CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0],
-                              sizeof(message), CANData, CANExtended));
+        cMsg = new CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0],
+                              sizeof(message), CANData, CANExtended);
       }
+
     } else if (!leftLimitSwitch) {
 
       if (vesc_steering_cmd < prev_vesc_steering_cmd) {
         buffer_append_uint32(&message[0], vesc_steering_cmd, &idx);
-        cMsg.reset(new CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0],
-                              sizeof(message), CANData, CANExtended));
+        cMsg = new CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0],
+                              sizeof(message), CANData, CANExtended);
       } else {
         buffer_append_uint32(&message[0], 0, &idx);
-        cMsg.reset(new CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0],
-                              sizeof(message), CANData, CANExtended));
+        cMsg = new CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0],
+                              sizeof(message), CANData, CANExtended);
       }
+
     } else {
       prev_vesc_steering_cmd = vesc_steering_cmd;
       buffer_append_int32(&message[0], vesc_steering_cmd * -1000000, &idx);
-      cMsg.reset(new CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0],
-                            sizeof(message), CANData, CANExtended));
+      cMsg = new CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0],
+                            sizeof(message), CANData, CANExtended);
     }
 
-    can_cmd_queue.try_put(cMsg.get());
+    can_cmd_queue.try_put(cMsg);
   }
 }
 
