@@ -493,7 +493,7 @@ void ActuationController::throttle_thread_impl() {
 
     uint8_t message[4] = {0, 0, 0, 0};
     int32_t idx = 0;
-    std::cout << "RPM: " << vesc_current_cmd << "\n";
+    // std::cout << "RPM: " << vesc_current_cmd << "\n";
     buffer_append_int32(&message[0], vesc_current_cmd, &idx);
     can_cmd_queue.try_put(new CANMessage(VESC_RPM_ID(THROTTLE_VESC_ID),
                                          &message[0], sizeof(message), CANData,
@@ -511,7 +511,7 @@ void ActuationController::can_transmit_thread_impl() {
     can_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &c_msg);
 
     if (!CAN_2.write(*c_msg)) {
-      std::cout << "Failed to send CAN message\n";
+      //std::cout << "Failed to send CAN message\n";
       CAN_2.reset();
       CAN_2.frequency(CAN2_BAUDRATE);
     }

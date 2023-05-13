@@ -86,7 +86,7 @@ bool emoVal(int emoVal1, int emoVal2, int rightTriVal){
 
 bool whoControlls(int rightTriVal){
     double triNorm = normalize(rightTriVal);
-    if(triNorm > 0)
+    if(triNorm < 0)
         return false;
     return true; 
 }
@@ -150,6 +150,7 @@ private:
     float currSteer, currThrottle, currBreak;
     Controller* cont_p;
     bool remoteControls;
+    int emoCounter;
     EventQueue sensor_write;
     Translation Map;
 };

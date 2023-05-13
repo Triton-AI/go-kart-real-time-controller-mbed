@@ -72,6 +72,10 @@ class Controller : public GkcStateMachine,
 public:
   Controller();
 
+  // void activate2();
+  // void deactivate2();
+
+
   // GkcPacketSubscriber API
   void packet_callback(const Handshake1GkcPacket &packet);
   void packet_callback(const Handshake2GkcPacket &packet);
@@ -113,9 +117,11 @@ protected:
 
   InterruptIn estop_interrupt;
 
+
   void watchdog_callback();
   void initialize_thread_callback();
   void heartbeat_thread_callback();
+  void poll_state();
   void sensor_poll_thread_callback();
   void estop_interrupt_callback();
 

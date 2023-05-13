@@ -56,12 +56,23 @@ Controller::Controller()
   // watchdog_.add_to_watchlist(&ctl_cmd_watcher_);
 
   sensor_.register_provider(&actuation_);
+Thread this2;
+this2.start(
+      callback(this, &Controller::poll_state));
+
   // sensor_.register_provider(this);
 
   // estop_interrupt.rise(callback(this,
   // &Controller::estop_interrupt_callback));
 
   // std::cout << "Controller class initialized" << std::endl;
+}
+
+void Controller::poll_state() {
+  while(1) {
+    std::cout << "State: " << get_state() << endl;
+    ThisThread::sleep_for(500ms);
+  }
 }
 
 /**
@@ -186,16 +197,26 @@ void Controller::packet_callback(const StateTransitionGkcPacket &packet) {
   }
 }
 
+// void Controller::activate2() {
+//   GkcStateMachine::activate();
+// }
+
+// void Controller::deactivate2() {
+//   GkcStateMachine::deactivate();
+// }
+
 void Controller::packet_callback(const ControlGkcPacket &packet) {
   // TODO
-  cout << "Received a ControlGkcPacket!"
-       << "\n";
+  // cout << "Received a ControlGkcPacket!"
+  //      << "\n";
   std::stringstream s;
   s << "[Control] thr: " << packet.throttle << ", brk: " << packet.brake
     << ", str: " << packet.steering;
   send_log(LogPacket::Severity::INFO, s.str());
-  cout << "Throttle: ";
-  std::cout << std::fixed << std::setprecision(2) << static_cast<float>(packet.throttle) << std::endl;
+
+      std::cout << "State: " << get_state() << std::endl;
+  // cout << "Throttle: ";
+  // std::cout << std::fixed << std::setprecision(2) << static_cast<float>(packet.throttle) << std::endl;
   if (get_state() == GkcLifecycle::Active) {
     actuation_.set_throttle_cmd(new float(packet.throttle));
     actuation_.set_brake_cmd(new float(packet.brake));
@@ -291,6 +312,8 @@ void Controller::heartbeat_thread_callback() {
 void Controller::sensor_poll_thread_callback() {
   Timer sensor_timer;
   while (!ThisThread::flags_get()) {
+    std::cout << "State: " << get_state() << "\n";
+
     sensor_timer.start();
     comm_.send(sensor_.get_packet());
     sensor_timer.stop();
@@ -333,6 +356,7 @@ Controller::on_deactivate(const GkcLifecycle &last_state) {
 }
 
 void Controller::deactivate_controller() {
+  //GkcStateMachine::deactivate();
   ctl_cmd_watcher_.deactivate();
   pc_hb_watcher_.deactivate();
   heartbeat_thread.terminate();
@@ -340,6 +364,7 @@ void Controller::deactivate_controller() {
 }
 
 void Controller::activate_controller() {
+  //GkcStateMachine::activate();
   ctl_cmd_watcher_.activate();
   pc_hb_watcher_.activate();
   heartbeat_thread.start(
