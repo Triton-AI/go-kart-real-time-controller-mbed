@@ -24,9 +24,9 @@ bool elrc_receiver::gatherData(){
 
     bool hasRead = serial_port.read(payload,256);
     if(!hasRead)return messageAvailable;
-    //printf("%x %x %x ", payload[0], payload[1], payload[2]);
-    //printf("%x %x %x ", payload[3], payload[4], payload[5]);
-    //printf("%x %x %x\n", payload[6], payload[7], payload[8]);
+    // printf("%x %x %x ", payload[0], payload[1], payload[2]);
+    // printf("%x %x %x ", payload[3], payload[4], payload[5]);
+    // printf("%x %x %x\n", payload[6], payload[7], payload[8]);
     int sm;
     for(sm = 0; !(payload[sm] == messageTarget && payload[sm+1] == messageType
     && payload[sm+2] == messageSize) && sm < messageSize; sm++);

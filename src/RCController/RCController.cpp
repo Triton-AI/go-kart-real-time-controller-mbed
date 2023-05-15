@@ -28,7 +28,6 @@ RCController::RCController() {
   noMsgCounter = 0;
   emoCounter = 0;
 
-  // std::cout << "Initializing RCController class" << std::endl;
   currSteer = 0;
   currThrottle = 0;
   currBreak = 0;
@@ -40,10 +39,9 @@ RCController::RCController() {
 void RCController::getSensor() {
   bool isRC = true;
   time_t secondsOG = time(NULL);
-  // while(1!=0){
   bool emoOn = false;
   bool whoControlls = false;
-  // std::cout << "bad luck" << std::endl;
+
   if (theReceiver.gatherData()) {
     currThrottle = Map.Throttle(theReceiver.busData()[throttlePad]);
     currSteer = Map.Steering(theReceiver.busData()[steerPad]);
@@ -52,33 +50,37 @@ void RCController::getSensor() {
                        theReceiver.busData()[rightTriSwitch]);
     whoControlls = Map.whoControlls(theReceiver.busData()[rightTriSwitch]);
     noMsgCounter = 0;
-    if(emoOn)
-        emoCounter++;
+
+    if (emoOn)
+      emoCounter++;
     else
-        emoCounter = 0;
+      emoCounter = 0;
   } else {
     noMsgCounter++;
   }
-  if (emoCounter>10 /*|| noMsgCounter > 100 */) {
-    // std::cout << "MsgCounter issue\n";
-    currThrottle = 0;
-    cont_p->deactivate_controller();
-    cont_p->set_actuation_values(currSteer, currThrottle, currBreak);
-  } else if (whoControlls) {
-    std::cout << std::setprecision(2) << currThrottle << " "
-              << std::setprecision(2) << currSteer << " " << emoOn << std::endl;
-    if (remoteControls) {
+
+  // if (emoCounter > 10 || noMsgCounter > 100) {
+  //   std::cout << "Deactivated\n";
+  //   currThrottle = 0;
+  //   cont_p->deactivate_controller();
+  //   cont_p->set_actuation_values(currSteer, currThrottle, currBreak);
+
+  // } else  /* if (whoControlls) */ {
+   //  if (remoteControls) {
       cont_p->deactivate_controller();
-    }
+    // }
+
     remoteControls = false;
-    // std::cout << "Print here\n";
     cont_p->set_actuation_values(currSteer, currThrottle, currBreak);
-  } else {
-    if (remoteControls == false) {
-      cont_p-> activate_controller();
-    }
-    remoteControls = true;
-  }
+
+  //} 
+  // else {
+  //   if (remoteControls == false) {
+  //     cont_p->activate_controller();
+  //   }
+
+  //   remoteControls = true;
+  // }
 }
 } // namespace gkc
 } // namespace tritonai

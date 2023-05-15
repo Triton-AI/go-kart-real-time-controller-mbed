@@ -1,7 +1,7 @@
 // Mbed
-#include "mbed.h"
 #include "PinNames.h"
 #include "ThisThread.h"
+#include "mbed.h"
 
 // Project specific
 #include "Controller/controller.hpp"
@@ -12,6 +12,8 @@ InterruptIn button(BUTTON1);
 
 int main() {
   button.rise(&NVIC_SystemReset);
+  std::cout << "Deactivated\n";
   new RCController();
-  while(1);
+  while (1)
+    ;
 }

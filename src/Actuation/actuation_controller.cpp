@@ -423,7 +423,7 @@ ActuationController::ActuationController(ILogger *logger)
   CAN_2.frequency(CAN2_BAUDRATE);
 
   CAN_1.reset();
-  CAN_1.frequency(CAN2_BAUDRATE);
+  CAN_1.frequency(CAN1_BAUDRATE);
 
   can_transmit_thread.start(
       callback(this, &ActuationController::can_transmit_thread_impl));
@@ -493,7 +493,7 @@ void ActuationController::throttle_thread_impl() {
 
     uint8_t message[4] = {0, 0, 0, 0};
     int32_t idx = 0;
-    // std::cout << "RPM: " << vesc_current_cmd << "\n";
+    std::cout << "RPM: " << vesc_current_cmd << "\n";
     buffer_append_int32(&message[0], vesc_current_cmd, &idx);
     can_cmd_queue.try_put(new CANMessage(VESC_RPM_ID(THROTTLE_VESC_ID),
                                          &message[0], sizeof(message), CANData,

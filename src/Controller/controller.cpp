@@ -16,7 +16,7 @@
 #include <sstream>
 #include <string>
 
-#include <iomanip> 
+#include <iomanip>
 
 #include "tai_gokart_packet/gkc_packet_utils.hpp"
 #include "tai_gokart_packet/gkc_packets.hpp"
@@ -55,10 +55,9 @@ Controller::Controller()
   // watchdog_.add_to_watchlist(&pc_hb_watcher_);
   // watchdog_.add_to_watchlist(&ctl_cmd_watcher_);
 
+  // state_poll_thread.start(callback(this, &Controller::poll_state));
+
   sensor_.register_provider(&actuation_);
-Thread this2;
-this2.start(
-      callback(this, &Controller::poll_state));
 
   // sensor_.register_provider(this);
 
@@ -69,8 +68,27 @@ this2.start(
 }
 
 void Controller::poll_state() {
-  while(1) {
-    std::cout << "State: " << get_state() << endl;
+  while (1) {
+    auto ss = "";
+    switch (static_cast<GkcLifecycle>(get_state())) {
+    case GkcLifecycle::Uninitialized:
+      ss = "Uninit";
+      break;
+    case GkcLifecycle::Initializing:
+      ss = "Initing";
+      break;
+    case GkcLifecycle::Active:
+      ss = "Active";
+      break;
+    case Inactive:
+      ss = "Inactive";
+      break;
+    case Emergency:
+      ss = "Estop";
+      break;
+    }
+
+    std::cout << "State: " << ss << std::endl;
     ThisThread::sleep_for(500ms);
   }
 }
@@ -197,30 +215,17 @@ void Controller::packet_callback(const StateTransitionGkcPacket &packet) {
   }
 }
 
-// void Controller::activate2() {
-//   GkcStateMachine::activate();
-// }
-
-// void Controller::deactivate2() {
-//   GkcStateMachine::deactivate();
-// }
-
 void Controller::packet_callback(const ControlGkcPacket &packet) {
-  // TODO
-  // cout << "Received a ControlGkcPacket!"
-  //      << "\n";
   std::stringstream s;
   s << "[Control] thr: " << packet.throttle << ", brk: " << packet.brake
     << ", str: " << packet.steering;
   send_log(LogPacket::Severity::INFO, s.str());
 
-      std::cout << "State: " << get_state() << std::endl;
-  // cout << "Throttle: ";
-  // std::cout << std::fixed << std::setprecision(2) << static_cast<float>(packet.throttle) << std::endl;
   if (get_state() == GkcLifecycle::Active) {
-    actuation_.set_throttle_cmd(new float(packet.throttle));
-    actuation_.set_brake_cmd(new float(packet.brake));
-    actuation_.set_steering_cmd(new float(packet.steering));
+    this->set_actuation_values(packet.steering, packet.throttle, packet.brake);
+  } else {
+    std::cout << "ERROR: Trying to do serial control with non-active state!\n";
+    ThisThread::sleep_for(500ms);
   }
 }
 
@@ -312,8 +317,6 @@ void Controller::heartbeat_thread_callback() {
 void Controller::sensor_poll_thread_callback() {
   Timer sensor_timer;
   while (!ThisThread::flags_get()) {
-    std::cout << "State: " << get_state() << "\n";
-
     sensor_timer.start();
     comm_.send(sensor_.get_packet());
     sensor_timer.stop();
@@ -356,7 +359,7 @@ Controller::on_deactivate(const GkcLifecycle &last_state) {
 }
 
 void Controller::deactivate_controller() {
-  //GkcStateMachine::deactivate();
+  // GkcStateMachine::deactivate();
   ctl_cmd_watcher_.deactivate();
   pc_hb_watcher_.deactivate();
   heartbeat_thread.terminate();
@@ -364,7 +367,7 @@ void Controller::deactivate_controller() {
 }
 
 void Controller::activate_controller() {
-  //GkcStateMachine::activate();
+  // GkcStateMachine::activate();
   ctl_cmd_watcher_.activate();
   pc_hb_watcher_.activate();
   heartbeat_thread.start(
