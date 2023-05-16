@@ -223,28 +223,14 @@ void Controller::packet_callback(const ControlGkcPacket &packet) {
 
   if (get_state() == GkcLifecycle::Active) {
     this->set_actuation_values(packet.steering, packet.throttle, packet.brake);
-  } else {
-    std::cout << "ERROR: Trying to do serial control with non-active state!\n";
-    ThisThread::sleep_for(500ms);
   }
 }
 
 void Controller::set_actuation_values(float steerVal, float throttleVal,
                                       float breakVal) {
-  // std::cout << "I am being called!!!!!" << std::endl;
-  actuation_.set_throttle_cmd(new float(throttleVal)); // was set to steer
-                                                       // before
-  // std::cout << "throttle: " << throttleVal << endl;
-  float h1 = actuation_.get_throttle_cmd();
-  // std::cout << h1 << std::endl;
-  actuation_.set_brake_cmd(new float(breakVal)); // setr to throttle before
-  // std::cout << "brake: " << breakVal << endl;
-  float h2 = actuation_.get_brake_cmd();
-  // std::cout << h2 << std::endl;
-  actuation_.set_steering_cmd(new float(steerVal)); // set to break
-  // std::cout << "steering: " << steerVal << endl;
-  float h3 = actuation_.get_steering_cmd();
-  // std::cout <<"from controller.cpp " << h3 <<  std::endl;
+  actuation_.set_throttle_cmd(new float(throttleVal));
+  actuation_.set_brake_cmd(new float(breakVal));
+  actuation_.set_steering_cmd(new float(steerVal));
 }
 
 void Controller::packet_callback(const SensorGkcPacket &packet) {
@@ -359,7 +345,7 @@ Controller::on_deactivate(const GkcLifecycle &last_state) {
 }
 
 void Controller::deactivate_controller() {
-  // GkcStateMachine::deactivate();
+  GkcStateMachine::deactivate();
   ctl_cmd_watcher_.deactivate();
   pc_hb_watcher_.deactivate();
   heartbeat_thread.terminate();
@@ -367,7 +353,7 @@ void Controller::deactivate_controller() {
 }
 
 void Controller::activate_controller() {
-  // GkcStateMachine::activate();
+  GkcStateMachine::activate();
   ctl_cmd_watcher_.activate();
   pc_hb_watcher_.activate();
   heartbeat_thread.start(

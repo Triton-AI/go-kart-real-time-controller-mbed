@@ -25,22 +25,15 @@ RCController::RCController() {
 
   cont_p = new Controller();
   cont_p->deactivate_controller();
-  noMsgCounter = 0;
-  emoCounter = 0;
 
-  currSteer = 0;
-  currThrottle = 0;
-  currBreak = 0;
-  remoteControls = false;
   sensor_write.call_every(50ms, this, &RCController::getSensor);
   sensor_write.dispatch_forever();
 }
 
 void RCController::getSensor() {
-  bool isRC = true;
-  time_t secondsOG = time(NULL);
   bool emoOn = false;
-  bool whoControlls = false;
+
+  bool tempBool = false;
 
   if (theReceiver.gatherData()) {
     currThrottle = Map.Throttle(theReceiver.busData()[throttlePad]);
@@ -48,7 +41,7 @@ void RCController::getSensor() {
     emoOn = Map.emoVal(theReceiver.busData()[emoPadLeft],
                        theReceiver.busData()[emoPadRight],
                        theReceiver.busData()[rightTriSwitch]);
-    whoControlls = Map.whoControlls(theReceiver.busData()[rightTriSwitch]);
+    remoteControl = Map.whoControlls(theReceiver.busData()[rightTriSwitch]);
     noMsgCounter = 0;
 
     if (emoOn)
@@ -59,28 +52,27 @@ void RCController::getSensor() {
     noMsgCounter++;
   }
 
-  // if (emoCounter > 10 || noMsgCounter > 100) {
-  //   std::cout << "Deactivated\n";
-  //   currThrottle = 0;
-  //   cont_p->deactivate_controller();
-  //   cont_p->set_actuation_values(currSteer, currThrottle, currBreak);
-
-  // } else  /* if (whoControlls) */ {
-   //  if (remoteControls) {
-      cont_p->deactivate_controller();
-    // }
-
-    remoteControls = false;
+  if (emoCounter > 10 || noMsgCounter > 100) {
+    currThrottle = 0;
+    currSteer = 0;
+    cont_p->deactivate_controller();
     cont_p->set_actuation_values(currSteer, currThrottle, currBreak);
 
-  //} 
-  // else {
-  //   if (remoteControls == false) {
-  //     cont_p->activate_controller();
-  //   }
+  } else if (remoteControl) {
+    cont_p->deactivate_controller();
+    cont_p->set_actuation_values(currSteer, currThrottle, currBreak);
+    tempBool = true;
 
-  //   remoteControls = true;
-  // }
+  } else {
+    if (tempBool) {
+      currThrottle = 0;
+      currSteer = 0;
+      cont_p->set_actuation_values(currSteer, currThrottle, currBreak);
+      tempBool = false;
+    }
+
+    cont_p->activate_controller();
+  }
 }
 } // namespace gkc
 } // namespace tritonai

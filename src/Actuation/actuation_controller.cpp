@@ -486,14 +486,12 @@ void ActuationController::throttle_thread_impl() {
   float *cmd;
   while (!ThisThread::flags_get()) {
     throttle_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
-    // std::cout << "RAW: " << static_cast<int>(*cmd) << "\n";
     current_throttle_cmd =
         clamp<float>(*cmd, -MAX_THROTTLE_MS, MAX_THROTTLE_MS);
     const int32_t vesc_current_cmd = current_throttle_cmd / CONST_ERPM2MS;
 
     uint8_t message[4] = {0, 0, 0, 0};
     int32_t idx = 0;
-    std::cout << "RPM: " << vesc_current_cmd << "\n";
     buffer_append_int32(&message[0], vesc_current_cmd, &idx);
     can_cmd_queue.try_put(new CANMessage(VESC_RPM_ID(THROTTLE_VESC_ID),
                                          &message[0], sizeof(message), CANData,

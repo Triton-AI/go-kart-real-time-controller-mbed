@@ -146,11 +146,11 @@ public:
     unsigned char *p = (unsigned char *) &to_read;
     int i;
 
-    std::cout << "Bytes: ";
-    for (i = 0; i < sizeof(to_read); i++)
-      printf("%02x ", p[i]);
+    // std::cout << "Bytes: ";
+    // for (i = 0; i < sizeof(to_read); i++)
+    //   printf("%02x ", p[i]);
 
-    std::cout << std::endl;
+    // std::cout << std::endl;
 
     return where + sizeof(T);
   }

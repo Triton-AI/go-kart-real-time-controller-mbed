@@ -90,14 +90,14 @@ void CommManager::recv_callback() {
         buff.data = buffer.data();
         buff.size = num_byte_read;
 
-        cout << "Got something of size " << num_byte_read << "\n";
-        cout << "Data: ";
+        // cout << "Got something of size " << num_byte_read << "\n";
+        // cout << "Data: ";
 
-        for(int i = 0; i < num_byte_read; i++) {
-          cout << hex << static_cast<int>(buffer[i]) << " ";
-        }
+        // for(int i = 0; i < num_byte_read; i++) {
+        //   cout << hex << static_cast<int>(buffer[i]) << " ";
+        // }
 
-        cout << endl;
+        // cout << endl;
 
         factory_->Receive(buff);
       }

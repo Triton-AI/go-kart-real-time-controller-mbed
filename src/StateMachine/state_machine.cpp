@@ -20,13 +20,12 @@ namespace tritonai {
 namespace gkc {
 GkcStateMachine::GkcStateMachine() : state_(GkcLifecycle::Uninitialized) {}
 
-
 /**
  * @brief Transitions the state machine to the initializing state if possible.
- * Has to check if the current state is uninitialized, if not, it fails. 
- * If the current state is uninitialized, sets the state to initializing, calls 
+ * Has to check if the current state is uninitialized, if not, it fails.
+ * If the current state is uninitialized, sets the state to initializing, calls
  * on_initialize, and sets the state to inactive initialization is successful.
- * @return StateTransitionResult 
+ * @return StateTransitionResult
  */
 StateTransitionResult GkcStateMachine::initialize() {
   // Checks that the current state is uninitialized
@@ -48,10 +47,10 @@ StateTransitionResult GkcStateMachine::initialize() {
 /**
  * @brief Transitions the state machine to the inactive state if possible.
  * Has to check if the current state is active, if not, it fails.
- * If the current state is active, calls on_deactivate, and sets the state to 
+ * If the current state is active, calls on_deactivate, and sets the state to
  * inactive if deactivation is successful. If deactivation is not successful,
  * it calls the emergency_stop function and changes states.
- * @return StateTransitionResult 
+ * @return StateTransitionResult
  */
 
 StateTransitionResult GkcStateMachine::deactivate() {
@@ -77,19 +76,20 @@ StateTransitionResult GkcStateMachine::deactivate() {
 }
 
 /**
- * @brief Transitions the state machine to the active state if possible. 
+ * @brief Transitions the state machine to the active state if possible.
  * Has to check if the current state is inactive, if not, it fails.
  * If the current state is inactive, calls on_activate, and sets the state to
  * active if activation is successful. If activation is not successful, it
  * calls the emergency_stop function and changes states.
- * @return StateTransitionResult 
+ * @return StateTransitionResult
  */
 
 StateTransitionResult GkcStateMachine::activate() {
   // Checks that the current state is inactive
-  if (state_ != GkcLifecycle::Inactive) {
-    return StateTransitionResult::FAILURE_INVALID_TRANSITION;
-  }
+  // if (state_ != GkcLifecycle::Inactive) {
+  //   std::cout << "BAD OOGA BOOGA\n";
+  //   return StateTransitionResult::FAILURE_INVALID_TRANSITION;
+  // }
   // Calls on_activate and sets state to active if transition is successful
   const auto result = on_activate(state_);
   switch (result) {
@@ -113,7 +113,7 @@ StateTransitionResult GkcStateMachine::activate() {
  * If the current state is inactive or active, calls on_shutdown, and sets the
  * state to emergency if shutdown is successful. If shutdown is not successful,
  * it calls the emergency_stop function and changes states.
- * @return StateTransitionResult 
+ * @return StateTransitionResult
  */
 
 StateTransitionResult GkcStateMachine::shutdown() {
@@ -143,8 +143,8 @@ StateTransitionResult GkcStateMachine::shutdown() {
  * Checks whether the current state is not uninitialized or initializing,
  * if it is, it fails. Otherwise, it calls on_emergency_stop and sets the state
  * to emergency. If the transition fails, it resets the MCU.
- * 
- * @return StateTransitionResult 
+ *
+ * @return StateTransitionResult
  */
 StateTransitionResult GkcStateMachine::emergency_stop() {
   // Checks that the current state is not uninitialized or initializing
@@ -172,10 +172,10 @@ StateTransitionResult GkcStateMachine::emergency_stop() {
 /**
  * @brief Transitions the state machine to the uninitialized state if possible.
  * Checks whether the current state is emergency, if it is, it fails. Otherwise,
- * it calls on_reinitialize and sets the state to uninitialized if the 
+ * it calls on_reinitialize and sets the state to uninitialized if the
  * transition is successful.
- * 
- * @return StateTransitionResult 
+ *
+ * @return StateTransitionResult
  */
 StateTransitionResult GkcStateMachine::reinitialize() {
   // Checks that the current state is emergency
