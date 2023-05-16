@@ -1,0 +1,20 @@
+{
+    "flags": [
+        "--cpu=Cortex-M7",
+        "--ide=mbed"
+    ],
+    "macros": [],
+    "symbols": [
+        "ARM_MATH_CM7",
+        "EXTRA_IDLE_STACK_REQUIRED",
+        "MBED_TICKLESS",
+        "STM32H743xx",
+        "TRANSACTION_QUEUE_SIZE_SPI=2",
+        "USE_FULL_LL_DRIVER",
+        "USE_HAL_DRIVER",
+        "__CMSIS_RTOS",
+        "__CORTEX_M7",
+        "__FPU_PRESENT=1",
+        "__MBED_CMSIS_RTOS_CM"
+    ]
+}

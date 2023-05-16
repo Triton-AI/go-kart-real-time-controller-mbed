@@ -18,6 +18,7 @@ PwmIn throttle(Throttle_Pin);
 PwmIn red(Red_Pin);
 */
 elrc_receiver theReceiver(REMOTE_UART_RX_PIN, REMOTE_UART_TX_PIN);
+CAN CAN_1(CAN1_RX, CAN1_TX, CAN1_BAUDRATE);
 
 namespace tritonai {
 namespace gkc {
@@ -44,10 +45,41 @@ void RCController::getSensor() {
     remoteControl = Map.whoControlls(theReceiver.busData()[rightTriSwitch]);
     noMsgCounter = 0;
 
-    if (emoOn)
+    CANMessage cMsg;
+    if(currThrottle == 0) {
+      uint8_t message[4] = {2, 0, 0, 0};
+    } else {
+      uint8_t message[4] = {3, 0, 0, 0};
+    }
+    cMsg = CANMessage(LIGHT_CAN_ID, &message[0], sizeof(message), 
+                        CANData, CANExtended);
+    if(!CAN1.send(msg)) {
+      CAN1.reset();
+      CAN_1.frequency(CAN1_BAUDRATE);
+    }
+
+    if (emoOn) {
       emoCounter++;
-    else
+      CANMessage cMsg;
+      uint8_t message[4] = {0, 0, 0, 0};
+      cMsg = CANMessage(LIGHT_CAN_ID, &message[0], sizeof(message), 
+                        CANData, CANExtended);
+      if(!CAN1.send(msg)) {
+        CAN1.reset();
+        CAN_1.frequency(CAN1_BAUDRATE);
+      }
+    } 
+    else {
       emoCounter = 0;
+      CANMessage cMsg;
+      uint8_t message[4] = {1, 0, 0, 0};
+      cMsg = CANMessage(LIGHT_CAN_ID, &message[0], sizeof(message), 
+                        CANData, CANExtended);
+      if(!CAN1.send(msg)) {
+        CAN1.reset();
+        CAN_1.frequency(CAN1_BAUDRATE);
+      }
+    }
   } else {
     noMsgCounter++;
   }
@@ -70,7 +102,6 @@ void RCController::getSensor() {
       cont_p->set_actuation_values(currSteer, currThrottle, currBreak);
       tempBool = false;
     }
-
     cont_p->activate_controller();
   }
 }

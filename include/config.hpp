@@ -125,6 +125,7 @@
 #define LEFT_LSWITCH PF_1
 #define ENABLE_LSWITCH      //comment to remove limit switches behaviour
 
+#define LIGHT_CAN_ID 03
 // *******
 // Sensors
 // *******
