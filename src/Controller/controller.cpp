@@ -216,13 +216,9 @@ void Controller::packet_callback(const StateTransitionGkcPacket &packet) {
 }
 
 void Controller::packet_callback(const ControlGkcPacket &packet) {
-  std::stringstream s;
-  s << "[Control] thr: " << packet.throttle << ", brk: " << packet.brake
-    << ", str: " << packet.steering;
-  send_log(LogPacket::Severity::INFO, s.str());
-
   if (get_state() == GkcLifecycle::Active) {
     this->set_actuation_values(packet.steering, packet.throttle, packet.brake);
+    //std::cout << static_cast<int>(packet.steering * 10000) << "\n";
   }
 }
 
@@ -274,10 +270,10 @@ void Controller::initialize_thread_callback() { initialize(); }
 
 void Controller::send_log(const LogPacket::Severity &severity,
                           const std::string &what) {
-  LogPacket pkt;
-  pkt.level = severity;
-  pkt.what = what;
-  comm_.send(pkt);
+  // LogPacket pkt;
+  // pkt.level = severity;
+  // pkt.what = what;
+  // comm_.send(pkt);
 }
 
 void Controller::heartbeat_thread_callback() {

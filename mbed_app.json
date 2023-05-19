@@ -1,0 +1,14 @@
+{
+    "target_overrides": {
+        "*": {
+            "platform.stdio-baud-rate": 115200,
+
+            "target.printf_lib": "minimal-printf",
+            "platform.minimal-printf-enable-floating-point": false,
+            "platform.minimal-printf-set-floating-point-max-decimals": 6,
+            "platform.minimal-printf-enable-64-bit": false,
+            "platform.fatal-error-auto-reboot-enabled": true,
+            "platform.error-reboot-max": 10
+        }
+    }
+}

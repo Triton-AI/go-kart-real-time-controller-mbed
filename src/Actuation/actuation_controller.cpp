@@ -16,7 +16,6 @@
 #include "ThisThread.h"
 #include "Thread.h"
 #include "Tools/global_profilers.hpp"
-#include "Watchdog/watchdog.hpp"
 #include "can_helper.h"
 #include "config.hpp"
 #include "vesc_can_helper.hpp"
@@ -24,6 +23,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <iomanip>
 #include <map>
 #include <string>
 #include <utility>
@@ -262,12 +262,17 @@ float map_steer2motor(float steer_angle) {
 
   // Find the two entries in the map that bound the input steering angle and
   // linearly interpolate between them
-  for (auto it = mapping.begin(); it != mapping.end(); it++)
-    if ((std::next(it))->second >=
-        sign * steer_angle) // sign * steer_angle is abs(steer_angle)
-      return sign * map_range<float, float>(sign * steer_angle, it->second,
-                                            std::next(it)->second, it->first,
-                                            std::next(it)->first);
+  for (auto it = mapping.begin(); it != mapping.end(); it++) {
+    if ((std::next(it))->second >= sign * steer_angle) {
+
+      auto returned =
+          sign * map_range<float, float>(sign * steer_angle, it->second,
+                                         std::next(it)->second, it->first,
+                                         std::next(it)->first);
+
+      return returned;
+    }
+  }
 
   // If the input steering angle is out of bounds of the look-up table, return 0
   return 0;
@@ -414,16 +419,12 @@ ActuationController::ActuationController(ILogger *logger)
       ISensorProvider(),
       current_steering_cmd(deg_to_rad<int32_t, float>(NEUTRAL_STEER_DEG)),
       logger(logger) {
-  // std::cout << "Initializing actuation" << std::endl;
 
   leftLimitSwitch.mode(PullUp);
   rightLimitSwitch.mode(PullUp);
 
   CAN_2.reset();
   CAN_2.frequency(CAN2_BAUDRATE);
-
-  CAN_1.reset();
-  CAN_1.frequency(CAN1_BAUDRATE);
 
   can_transmit_thread.start(
       callback(this, &ActuationController::can_transmit_thread_impl));
@@ -496,8 +497,9 @@ void ActuationController::throttle_thread_impl() {
     can_cmd_queue.try_put(new CANMessage(VESC_RPM_ID(THROTTLE_VESC_ID),
                                          &message[0], sizeof(message), CANData,
                                          CANExtended));
-
     delete cmd;
+
+    ThisThread::sleep_for(2ms);
   }
 }
 
@@ -509,7 +511,7 @@ void ActuationController::can_transmit_thread_impl() {
     can_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &c_msg);
 
     if (!CAN_2.write(*c_msg)) {
-      //std::cout << "Failed to send CAN message\n";
+      // std::cout << "Failed to send CAN message\n";
       CAN_2.reset();
       CAN_2.frequency(CAN2_BAUDRATE);
     }
@@ -541,20 +543,42 @@ void ActuationController::steering_thread_impl() {
   // initialize
   ThisThread::sleep_for(1s);
   float *cmd;
-  float prev_vesc_steering_cmd = 0;
+  // float prev_vesc_steering_cmd = 0;
   while (!ThisThread::flags_get()) // Forever until thread is killed
   {
     steering_cmd_queue.try_get_for(Kernel::wait_for_u32_forever, &cmd);
+
+    // std::cout << "Steering Angle Before Map Before 1st Clamp (Deg): "
+    //           << std::setprecision(2) << *cmd << "\n";
+
     *cmd = clamp<float>(*cmd, deg_to_rad<float, float>(MIN__WHEEL_STEER_DEG),
                         deg_to_rad<float, float>(MAX__WHEEL_STEER_DEG));
+
+    // std::cout << "Steering Angle Before Map After 1st Clamp (Deg): "
+    //           << std::setprecision(2) << rad_to_deg<float, float>(*cmd) <<
+    //           "\n";
+
     *cmd = map_steer2motor(*cmd);
+
+    // std::cout << "Steering Angle After Map Before 2nd Clamp (Deg): "
+    //           << std::setprecision(2) << rad_to_deg<float, float>(*cmd) <<
+    //           "\n";
+
     *cmd = clamp<float>(*cmd, deg_to_rad<float, float>(MIN_STEER_DEG),
                         deg_to_rad<float, float>(MAX_STEER_DEG));
+
+    // std::cout << "Steering Angle After Map After 2nd Clamp (Deg): "
+    //           << std::setprecision(2) << rad_to_deg<float, float>(*cmd) <<
+    //           "\n";
+
     angle_steering_cmd = *cmd; //  this is in radians
     const float vesc_steering_cmd = rad_to_deg<float, float>(
         fmod(angle_steering_cmd + deg_to_rad<float, float>(STEERING_CAL_OFF),
              2 * M_PI));
-    // std::cout << "Steering Angle (Deg): " << vesc_steering_cmd << "\n";
+
+    // std::cout << "Final Steering Angle Command (Deg): "
+    //           << static_cast<int>(vesc_steering_cmd) << "\n";
+
     delete cmd;
 
     uint8_t message[4] = {0, 0, 0, 0};
@@ -564,38 +588,41 @@ void ActuationController::steering_thread_impl() {
 
     // This block of code only allows position control in between the limit
     // switches.
-    if (!rightLimitSwitch) {
+    // if (!rightLimitSwitch) {
 
-      if (vesc_steering_cmd > prev_vesc_steering_cmd) {
-        buffer_append_uint32(&message[0], vesc_steering_cmd, &idx);
-        cMsg = new CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0],
-                              sizeof(message), CANData, CANExtended);
-      } else {
-        buffer_append_uint32(&message[0], 0, &idx);
-        cMsg = new CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0],
-                              sizeof(message), CANData, CANExtended);
-      }
+    //   if (vesc_steering_cmd > prev_vesc_steering_cmd) {
+    //     buffer_append_uint32(&message[0], vesc_steering_cmd, &idx);
+    //     cMsg = new CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0],
+    //                           sizeof(message), CANData, CANExtended);
+    //   } else {
+    //     buffer_append_uint32(&message[0], 0, &idx);
+    //     cMsg = new CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0],
+    //                           sizeof(message), CANData, CANExtended);
+    //   }
 
-    } else if (!leftLimitSwitch) {
+    // } else if (!leftLimitSwitch) {
 
-      if (vesc_steering_cmd < prev_vesc_steering_cmd) {
-        buffer_append_uint32(&message[0], vesc_steering_cmd, &idx);
-        cMsg = new CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0],
-                              sizeof(message), CANData, CANExtended);
-      } else {
-        buffer_append_uint32(&message[0], 0, &idx);
-        cMsg = new CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0],
-                              sizeof(message), CANData, CANExtended);
-      }
+    //   if (vesc_steering_cmd < prev_vesc_steering_cmd) {
+    //     buffer_append_uint32(&message[0], vesc_steering_cmd, &idx);
+    //     cMsg = new CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0],
+    //                           sizeof(message), CANData, CANExtended);
+    //   } else {
+    //     buffer_append_uint32(&message[0], 0, &idx);
+    //     cMsg = new CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0],
+    //                           sizeof(message), CANData, CANExtended);
+    //   }
 
-    } else {
-      prev_vesc_steering_cmd = vesc_steering_cmd;
-      buffer_append_int32(&message[0], vesc_steering_cmd * -1000000, &idx);
-      cMsg = new CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0],
-                            sizeof(message), CANData, CANExtended);
-    }
+    // } else {
+    // prev_vesc_steering_cmd = vesc_steering_cmd;
+    buffer_append_int32(&message[0], vesc_steering_cmd * -1000000, &idx);
+    // std::cout << "Final Steering Angle Command (Deg): " <<
+    // static_cast<int>(vesc_steering_cmd * -1000000) << "\n";
+    cMsg = new CANMessage(VESC_POSITION_ID(STEER_VESC_ID), &message[0],
+                          sizeof(message), CANData, CANExtended);
+    // }
 
     can_cmd_queue.try_put(cMsg);
+    ThisThread::sleep_for(2ms);
   }
 }
 

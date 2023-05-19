@@ -26,6 +26,9 @@ RCController::RCController() {
   cont_p = new Controller();
   cont_p->deactivate_controller();
 
+  //mbed::Watchdog &watchdog = mbed::Watchdog::get_instance();
+  //watchdog.start(DEFAULT_ACTUATION_INTERVAL_MS);
+
   sensor_write.call_every(50ms, this, &RCController::getSensor);
   sensor_write.dispatch_forever();
 }
@@ -52,18 +55,19 @@ void RCController::getSensor() {
     noMsgCounter++;
   }
 
-  if (emoCounter > 10 || noMsgCounter > 100) {
+  if (emoOn || noMsgCounter > 100) {
     currThrottle = 0;
     currSteer = 0;
     cont_p->deactivate_controller();
     cont_p->set_actuation_values(currSteer, currThrottle, currBreak);
 
   } else if (remoteControl) {
+    //mbed::Watchdog::get_instance().kick();
     cont_p->deactivate_controller();
     cont_p->set_actuation_values(currSteer, currThrottle, currBreak);
     tempBool = true;
 
-  } else {
+  } else if (!remoteControl) {
     if (tempBool) {
       currThrottle = 0;
       currSteer = 0;
@@ -71,6 +75,7 @@ void RCController::getSensor() {
       tempBool = false;
     }
 
+    //mbed::Watchdog::get_instance().kick();
     cont_p->activate_controller();
   }
 }

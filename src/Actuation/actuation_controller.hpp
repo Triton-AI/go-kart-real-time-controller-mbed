@@ -17,8 +17,6 @@
 #include "Tools/logger.hpp"
 #include "mbed.h"
 #include "Sensor/sensor_reader.hpp"
-#include "Watchdog/watchable.hpp"
-#include "Watchdog/watchdog.hpp"
 #include <cstdint>
 
 namespace tritonai {

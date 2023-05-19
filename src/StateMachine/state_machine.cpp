@@ -87,7 +87,6 @@ StateTransitionResult GkcStateMachine::deactivate() {
 StateTransitionResult GkcStateMachine::activate() {
   // Checks that the current state is inactive
   // if (state_ != GkcLifecycle::Inactive) {
-  //   std::cout << "BAD OOGA BOOGA\n";
   //   return StateTransitionResult::FAILURE_INVALID_TRANSITION;
   // }
   // Calls on_activate and sets state to active if transition is successful
