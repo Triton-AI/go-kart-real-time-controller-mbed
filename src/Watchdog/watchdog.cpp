@@ -39,6 +39,8 @@ void Watchdog::disarm() {
 
 void Watchdog::watchdog_callback() {//would be called when the watchdog timer expires 
   // std::cout << "Watchdog timeout" << std::endl;
+  // Restart the system 
+  NVIC_SystemReset();
 }
 //start a thread that continuously monitors the watchlist nd checks for any activity.
 void Watchdog::start_watch_thread() {
