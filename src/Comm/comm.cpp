@@ -59,7 +59,10 @@ size_t CommManager::send_impl(const GkcBuffer &buffer) {
   return SERIAL_VAR->write(buffer.data(), buffer.size());
 }
 
-void CommManager::watchdog_callback() {}
+void CommManager::watchdog_callback() {
+  std::cout << "CommManager Timeout detected" << std::endl;
+  NVIC_SystemReset();
+}
 
 void CommManager::recv_callback() {
 #ifdef COMM_USB_SERIAL

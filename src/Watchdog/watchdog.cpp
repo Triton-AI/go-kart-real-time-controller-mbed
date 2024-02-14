@@ -38,7 +38,7 @@ void Watchdog::disarm() {
 }
 
 void Watchdog::watchdog_callback() {//would be called when the watchdog timer expires 
-  // std::cout << "Watchdog timeout" << std::endl;
+  std::cout << "Watchdog timeout" << std::endl;
   // Restart the system 
   NVIC_SystemReset();
 }
