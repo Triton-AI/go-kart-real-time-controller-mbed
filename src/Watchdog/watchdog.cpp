@@ -56,8 +56,8 @@ void Watchdog::start_watch_thread() {
           if (entry.first->check_activity() || !entry.first->is_activated()) {
             // Activity found. Reset counter.
             entry.second = 0;
-            // std::cout << "Activity found in " << entry.first->get_name()
-            //           << std::endl; 
+            std::cout << "Activity found in " << entry.first->get_name()
+                      << std::endl; 
           } else {
             // No activity. Increment inactivity counter.
             entry.second += time_elapsed_ms.count();

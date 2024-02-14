@@ -37,7 +37,7 @@ public:
   virtual void populate_reading(SensorGkcPacket &pkt) = 0;
 };
 
-class SensorReader : Watchable {
+class SensorReader : public Watchable {
 public:
   SensorReader();
   void register_provider(ISensorProvider *provider);
@@ -48,6 +48,8 @@ public:
     poll_interval_ = val;
   }
   std::chrono::milliseconds get_poll_interval() { return poll_interval_; }
+
+  void watchdog_callback();
 
 protected:
   SensorGkcPacket pkt_{};

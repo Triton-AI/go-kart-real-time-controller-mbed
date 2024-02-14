@@ -34,9 +34,6 @@ namespace tritonai {
 namespace gkc {
 class CommManager : public Watchable {
 public:
-  static constexpr uint32_t WATCHDOG_UPDATE_MS = 100;
-  static constexpr uint32_t WATCHDOG_MAX_MS = 500;
-
   explicit CommManager(GkcPacketSubscriber *sub);
   void send(const GkcPacket &packet);
 

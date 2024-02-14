@@ -4,6 +4,7 @@
 #include "Comm/comm.hpp"
 #include "tai_gokart_packet/gkc_packet_subscriber.hpp"
 #include "Watchdog/watchdog.hpp"
+#include "Sensor/sensor_reader.hpp"
 namespace tritonai::gkc
 {
   class Controller :
@@ -30,6 +31,7 @@ namespace tritonai::gkc
     private:
       CommManager _comm;
       Watchdog _watchdog;
+      SensorReader _sensor_reader;
   };
 }
 

@@ -7,9 +7,11 @@ namespace tritonai::gkc
 {
   Controller::Controller() :
     _comm(this), // Passes the controller as the subscriber to the comm manager
-    _watchdog(DEFAULT_WD_INTERVAL_MS, DEFAULT_WD_MAX_INACTIVITY_MS, DEFAULT_WD_WAKEUP_INTERVAL_MS) // Initializes the watchdog with default values
+    _watchdog(DEFAULT_WD_INTERVAL_MS, DEFAULT_WD_MAX_INACTIVITY_MS, DEFAULT_WD_WAKEUP_INTERVAL_MS), // Initializes the watchdog with default values
+    _sensor_reader() // Initializes the sensor reader
   {
     _watchdog.add_to_watchlist(&_comm); // Adds the comm manager to the watchlist
+    _watchdog.add_to_watchlist(&_sensor_reader); // Adds the sensor reader to the watchlist
 
     _watchdog.arm(); // Arms the watchdog
 

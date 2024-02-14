@@ -60,5 +60,11 @@ void SensorReader::remove_provider(ISensorProvider *provider) {
                    providers_.end());
   providers_lock_.unlock();
 }
+
+void SensorReader::watchdog_callback() {
+  std::cout << "SensorReader Timeout detected" << std::endl;
+  NVIC_SystemReset();
+}
+
 } // namespace gkc
 } // namespace tritonai

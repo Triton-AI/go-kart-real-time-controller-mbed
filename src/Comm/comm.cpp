@@ -21,7 +21,7 @@
 namespace tritonai {
 namespace gkc {
 CommManager::CommManager(GkcPacketSubscriber *sub)
-    : Watchable(WATCHDOG_UPDATE_MS, WATCHDOG_MAX_MS, "CommManager"),
+    : Watchable(DEFAULT_COMM_POLL_INTERVAL_MS, DEFAULT_COMM_POLL_LOST_TOLERANCE_MS, "CommManager"),
       factory_(
           std::make_unique<GkcPacketFactory>(sub, GkcPacketUtils::debug_cout)) {
   attach(callback(this, &CommManager::watchdog_callback));
