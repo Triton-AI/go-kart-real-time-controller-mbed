@@ -4,7 +4,8 @@
 
 namespace tritonai::gkc
 {
-  Controller::Controller()
+  Controller::Controller() :
+    _comm(this)
   {
     std::cout << "Controller created" << std::endl;
   }

@@ -105,7 +105,7 @@ look_for_next_start:
     packet->decode(raw_packet);
     packet->publish(*(this->_sub));
 
-    std::cout << "Packet Published\n";
+    // std::cout << "Packet Published\n";
 
     // One packet found. Are there others?
     // First erase the parsed packet from buffer

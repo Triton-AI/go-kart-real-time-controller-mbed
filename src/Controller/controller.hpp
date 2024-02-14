@@ -25,6 +25,9 @@ namespace tritonai::gkc
       void packet_callback(const Shutdown1GkcPacket & packet);
       void packet_callback(const Shutdown2GkcPacket & packet);
       void packet_callback(const LogPacket & packet);
+
+    private:
+      CommManager _comm;
   };
 }
 
