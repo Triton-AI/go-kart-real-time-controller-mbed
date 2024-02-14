@@ -10,9 +10,10 @@ namespace tritonai {
 namespace gkc {
 class Watchable {
 public:
-  Watchable(uint32_t update_interval_ms, uint32_t max_inactivity_limit_ms)
+  Watchable(uint32_t update_interval_ms, uint32_t max_inactivity_limit_ms, std::string name)
       : update_interval_ms(update_interval_ms),
-        max_inactivity_limit_ms(max_inactivity_limit_ms) {}
+        max_inactivity_limit_ms(max_inactivity_limit_ms),
+        name(name) {}
 
   void activate() { active = true; }
   void deactivate() { active = false; }
@@ -30,6 +31,7 @@ public:
   }
   void attach(Callback<void ()> func) { callback_func_ = func; }
   void watchdog_trigger() { callback_func_(); }
+  std::string get_name() { return name; }
 
 protected:
   bool active = false;
@@ -39,6 +41,7 @@ protected:
   Callback<void ()> callback_func_;
 private:
   uint32_t last_check_rolling_counter_val = 0;
+  std::string name;
 };
 } // namespace gkc
 } // namespace tritonai

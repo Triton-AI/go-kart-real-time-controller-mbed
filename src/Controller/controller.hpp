@@ -3,6 +3,7 @@
 
 #include "Comm/comm.hpp"
 #include "tai_gokart_packet/gkc_packet_subscriber.hpp"
+#include "Watchdog/watchdog.hpp"
 namespace tritonai::gkc
 {
   class Controller :
@@ -28,6 +29,7 @@ namespace tritonai::gkc
 
     private:
       CommManager _comm;
+      Watchdog _watchdog;
   };
 }
 

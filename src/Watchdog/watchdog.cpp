@@ -9,7 +9,7 @@ namespace tritonai {
 namespace gkc {   //defines a constructor for a class called "Watchdog" in the "gkc" namespace, which is a part of the "tritonai" namespace. 
 Watchdog::Watchdog(uint32_t update_interval_ms,
                    uint32_t max_inactivity_limit_ms, uint32_t wakeup_every_ms)
-    : Watchable(update_interval_ms, max_inactivity_limit_ms), 
+    : Watchable(update_interval_ms, max_inactivity_limit_ms, "Watchdog"), 
     //Watchable constructor is called with the "update_interval_ms" and "max_inactivity_limit_ms" arguments
     //the result is used to initialize the Watchdog object.
       watchdog_interval_ms_(wakeup_every_ms) { 
@@ -56,6 +56,8 @@ void Watchdog::start_watch_thread() {
           if (entry.first->check_activity() || !entry.first->is_activated()) {
             // Activity found. Reset counter.
             entry.second = 0;
+            // std::cout << "Activity found in " << entry.first->get_name()
+            //           << std::endl; 
           } else {
             // No activity. Increment inactivity counter.
             entry.second += time_elapsed_ms.count();

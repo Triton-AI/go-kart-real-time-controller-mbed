@@ -1,12 +1,18 @@
 #include "Controller/controller.hpp"
+#include "config.h"
 
 #include <iostream>
 
 namespace tritonai::gkc
 {
   Controller::Controller() :
-    _comm(this)
+    _comm(this), // Passes the controller as the subscriber to the comm manager
+    _watchdog(DEFAULT_WD_INTERVAL_MS, DEFAULT_WD_MAX_INACTIVITY_MS, DEFAULT_WD_WAKEUP_INTERVAL_MS) // Initializes the watchdog with default values
   {
+    _watchdog.add_to_watchlist(&_comm); // Adds the comm manager to the watchlist
+
+    _watchdog.arm(); // Arms the watchdog
+
     std::cout << "Controller created" << std::endl;
   }
 

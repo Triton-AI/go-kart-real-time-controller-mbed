@@ -26,7 +26,8 @@ namespace tritonai {
 namespace gkc {
 SensorReader::SensorReader()
     : Watchable(DEFAULT_SENSOR_POLL_INTERVAL_MS,
-                DEFAULT_SENSOR_POLL_LOST_TOLERANCE_MS) {
+                DEFAULT_SENSOR_POLL_LOST_TOLERANCE_MS,
+                "SensorReader") {
   // std::cout << "Initializing sensor" << std::endl;
   sensor_poll_thread.start(
       callback(this, &SensorReader::sensor_poll_thread_impl));

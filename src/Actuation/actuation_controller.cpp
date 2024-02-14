@@ -415,7 +415,8 @@ Timer timey;
 
 ActuationController::ActuationController(ILogger *logger)
     : Watchable(DEFAULT_ACTUATION_INTERVAL_MS,
-                DEFAULT_ACTUATION_LOST_TOLERANCE_MS),
+                DEFAULT_ACTUATION_LOST_TOLERANCE_MS,
+                "ActuationController"),
       ISensorProvider(),
       current_steering_cmd(deg_to_rad<int32_t, float>(NEUTRAL_STEER_DEG)),
       logger(logger) {

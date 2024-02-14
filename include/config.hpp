@@ -47,8 +47,9 @@
 // Watchdogs
 // *********
 // What's the update frequency of the watchdog
-#define DEFAULT_WD_INTERVAL_MS 2
+#define DEFAULT_WD_INTERVAL_MS 10
 #define DEFAULT_WD_MAX_INACTIVITY_MS 100
+#define DEFAULT_WD_WAKEUP_INTERVAL_MS 2
 // How often should the MCU send heartbeat by default
 #define DEFAULT_MCU_HEARTBEAT_INTERVAL_MS 1000
 #define DEFAULT_MCU_HEARTBEAT_LOST_TOLERANCE_MS 2000
