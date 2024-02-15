@@ -1,6 +1,8 @@
 #include "Controller/controller.hpp"
 #include "config.h"
 
+#include "tai_gokart_packet/gkc_packets.hpp"
+
 #include <chrono>
 #include <iostream>
 
@@ -10,7 +12,8 @@ namespace tritonai::gkc
     Watchable(DEFAULT_CONTROLLER_POLL_INTERVAL_MS, DEFAULT_CONTROLLER_POLL_LOST_TOLERANCE_MS, "Controller"), // Initializes the controller with default values
     _comm(this), // Passes the controller as the subscriber to the comm manager
     _watchdog(DEFAULT_WD_INTERVAL_MS, DEFAULT_WD_MAX_INACTIVITY_MS, DEFAULT_WD_WAKEUP_INTERVAL_MS), // Initializes the watchdog with default values
-    _sensor_reader() // Initializes the sensor reader
+    _sensor_reader(), // Initializes the sensor reader
+    _actuation(this) // Passes the controller as the logger to the actuation controller
   {
     // Attaches the watchdog callback to the controller
     attach(callback(this, &Controller::watchdog_callback));
@@ -28,6 +31,7 @@ namespace tritonai::gkc
     std::cout << "Controller created" << std::endl;
   }
 
+  // Wathdog API IMPLEMENTATION
   void Controller::watchdog_callback()
   {
     std::cout << "Controller watchdog trigger" << std::endl;
@@ -37,9 +41,22 @@ namespace tritonai::gkc
   void Controller::keep_alive()
   {
     while(1){
-      ThisThread::sleep_for(std::chrono::milliseconds(2));
+      ThisThread::sleep_for(std::chrono::milliseconds(20));
       this->inc_count();
+
+      ControlGkcPacket packet;
+      packet.brake = 0.1;
+      packet.throttle = 0.1;
+      packet.steering = 0.1;
+      
+      this->packet_callback(packet);
     }
+  }
+
+  // ILogger API IMPLEMENTATION
+  void Controller::send_log(const LogPacket::Severity &severity, const std::string &what)
+  {
+    std::cout << "Log: " << what << std::endl;
   }
 
   // PACKET CALLBACKS API IMPLEMENTATION
@@ -85,7 +102,10 @@ namespace tritonai::gkc
 
   void Controller::packet_callback(const ControlGkcPacket &packet)
   {
-    std::cout << "ControlGkcPacket received" << std::endl;
+    // std::cout << "ControlGkcPacket received" << std::endl;
+    _actuation.set_throttle_cmd(new float(packet.throttle));
+    _actuation.set_steering_cmd(new float(packet.steering));
+    _actuation.set_brake_cmd(new float(packet.brake));
   }
 
   void Controller::packet_callback(const SensorGkcPacket &packet)

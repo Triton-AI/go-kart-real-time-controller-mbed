@@ -5,11 +5,13 @@
 #include "tai_gokart_packet/gkc_packet_subscriber.hpp"
 #include "Watchdog/watchdog.hpp"
 #include "Sensor/sensor_reader.hpp"
+#include "Actuation/actuation_controller.hpp"
 namespace tritonai::gkc
 {
   class Controller :
     public GkcPacketSubscriber,
-    public Watchable
+    public Watchable,
+    public ILogger
   {
     public:
       Controller();
@@ -32,10 +34,14 @@ namespace tritonai::gkc
       void packet_callback(const Shutdown2GkcPacket & packet);
       void packet_callback(const LogPacket & packet);
 
+      void send_log(const LogPacket::Severity &severity, 
+                    const std::string &what) override;
+
     private:
       CommManager _comm;
       Watchdog _watchdog;
       SensorReader _sensor_reader;
+      ActuationController _actuation;
 
       Thread _keep_alive_thread;
   };

@@ -65,8 +65,8 @@ void Watchdog::start_watch_thread() {
           {
             // Activity found. Reset counter.
             entry.second = 0;
-            std::cout << "Activity found in " << entry.first->get_name()
-                      << std::endl; 
+            // std::cout << "Activity found in " << entry.first->get_name()
+            //           << std::endl; 
           } 
           else 
           {
