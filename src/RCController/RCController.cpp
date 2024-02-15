@@ -73,6 +73,8 @@ namespace tritonai::gkc
         {  
             ThisThread::sleep_for(10ms);
 
+            inc_count(); // Increment the rolling counter
+
             if (!_receiver.gatherData()) continue; // Stop if no data available
             
 
@@ -127,10 +129,19 @@ namespace tritonai::gkc
     }
 
     RCController::RCController(GkcPacketSubscriber *sub) :
+        Watchable(DEFAULT_RC_CONTROLLER_POLL_INTERVAL_MS, DEFAULT_RC_CONTROLLER_POLL_LOST_TOLERANCE_MS, "RCController"),
         _receiver(REMOTE_UART_RX_PIN,REMOTE_UART_TX_PIN),
         _is_ready(false),
         _sub(sub)
     {
         _rc_thread.start(callback(this, &RCController::update));
+        attach(callback(this, &RCController::watchdog_callback));
+        std::cout << "RCController initialized" << std::endl;
+    }
+
+    void RCController::watchdog_callback()
+    {
+        std::cout << "RCController watchdog triggered" << std::endl;
+        NVIC_SystemReset();
     }
 } // namespace tritonai::gkc

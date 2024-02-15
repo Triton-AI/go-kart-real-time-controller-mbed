@@ -26,6 +26,7 @@ namespace tritonai::gkc
     _watchdog.add_to_watchlist(this); // Adds the controller to the watchlist
     _watchdog.add_to_watchlist(&_comm); // Adds the comm manager to the watchlist
     _watchdog.add_to_watchlist(&_sensor_reader); // Adds the sensor reader to the watchlist
+    _watchdog.add_to_watchlist(&_rc_controller); // Adds the RC controller to the watchlist
 
     _watchdog.arm(); // Arms the watchdog
 

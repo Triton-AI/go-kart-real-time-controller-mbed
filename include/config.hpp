@@ -71,6 +71,10 @@
 // How ofteh the controller should be checked by watchdog
 #define DEFAULT_CONTROLLER_POLL_INTERVAL_MS 1000
 #define DEFAULT_CONTROLLER_POLL_LOST_TOLERANCE_MS 3000
+// How often should the RCCOntroller be checked by watchdog
+#define DEFAULT_RC_CONTROLLER_POLL_INTERVAL_MS 1000
+#define DEFAULT_RC_CONTROLLER_POLL_LOST_TOLERANCE_MS 3000
+
 
 // *********
 // Actuation

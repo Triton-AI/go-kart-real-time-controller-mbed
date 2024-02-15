@@ -6,6 +6,7 @@
 #include "elrs_receiver.hpp"
 #include "tai_gokart_packet/gkc_packets.hpp"
 #include "Tools/rc_control.hpp"
+#include "Watchdog/watchable.hpp"
 #include <Thread.h>
 
 namespace tritonai::gkc
@@ -21,7 +22,7 @@ struct Translation
     AutonomyMode getAutonomyMode(int rightTriVal);
 };
 
-class RCController
+class RCController : public Watchable
 {
     public:
     explicit RCController(GkcPacketSubscriber *sub);
@@ -34,6 +35,7 @@ class RCController
     void update();
     Translation Map;
     Thread _rc_thread{osPriorityNormal, OS_STACK_SIZE*2, nullptr, "rc_thread"};
+    void watchdog_callback();
     
 
     private:
