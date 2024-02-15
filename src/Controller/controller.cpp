@@ -29,13 +29,13 @@ namespace tritonai::gkc
 
     _watchdog.arm(); // Arms the watchdog
 
-    std::cout << "Controller created" << std::endl;
+    send_log(LogPacket::Severity::INFO, "Controller initialized");
   }
 
   // Wathdog API IMPLEMENTATION
   void Controller::watchdog_callback()
   {
-    std::cout << "Controller watchdog trigger" << std::endl;
+    send_log(LogPacket::Severity::ERROR, "Controller watchdog trigger");
     NVIC_SystemReset();
   }
 
@@ -50,13 +50,13 @@ namespace tritonai::gkc
   // ILogger API IMPLEMENTATION
   void Controller::send_log(const LogPacket::Severity &severity, const std::string &what)
   {
-    std::cout << "Log: " << what << std::endl;
+    // std::cout << "Log: " << what << std::endl;
   }
 
   // PACKET CALLBACKS API IMPLEMENTATION
   void Controller::packet_callback(const Handshake1GkcPacket &packet)
   {
-    std::cout << "Handshake1GkcPacket received" << std::endl;
+    send_log(LogPacket::Severity::INFO, "Handshake1GkcPacket received");
   }
 
   void Controller::packet_callback(const Handshake2GkcPacket &packet)
@@ -124,12 +124,14 @@ namespace tritonai::gkc
 
   void Controller::packet_callback(const RCControlGkcPacket &packet)
   {
-    // std::cout << "RCControlGkcPacket received" << std::endl;
-    std::cout << "Throttle: " << packet.throttle
-              << " Steering: " << packet.steering
-              << " Brake: " << packet.brake
-              << " Is Active: " << packet.is_active
-              << " Autonomy Mode: " << packet.autonomy_mode
-              << std::endl;
+    send_log(LogPacket::Severity::INFO, 
+             "RCControlGkcPacket receive");
+
+    if(!packet.is_active) return; // If the emergency stop is active, do nothing
+
+    _actuation.set_throttle_cmd(new float(packet.throttle));
+    _actuation.set_steering_cmd(new float(packet.steering));
+    _actuation.set_brake_cmd(new float(packet.brake));
+
   }
 } // namespace tritonai::gkc

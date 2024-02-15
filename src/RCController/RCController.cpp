@@ -92,14 +92,17 @@ namespace tritonai::gkc
                 continue; // Stop if the values are the same
             }
 
-
-            _packet.throttle = Map.throttle(busData[ELRS_THROTLE]);
-            _packet.brake = 0.0; // TODO: Implement brake
-            _packet.steering = Map.steering(busData[ELRS_STEERING]);
             _packet.is_active = Map.is_active(
                 busData[ELRS_EMERGENCY_STOP_LEFT],
                 busData[ELRS_EMERGENCY_STOP_RIGHT]
             );
+
+            if(!_packet.is_active) continue; // Stop if the emergency stop is active
+
+
+            _packet.throttle = Map.throttle(busData[ELRS_THROTLE]);
+            _packet.brake = 0.0; // TODO: Implement brake
+            _packet.steering = Map.steering(busData[ELRS_STEERING]);
             _packet.autonomy_mode = Map.getAutonomyMode(
                 busData[ELRS_TRI_SWITCH_RIGHT]
             );
@@ -118,6 +121,5 @@ namespace tritonai::gkc
         _sub(sub)
     {
         _rc_thread.start(callback(this, &RCController::update));
-        std::cout << "RCController created" << std::endl;
     }
 } // namespace tritonai::gkc
