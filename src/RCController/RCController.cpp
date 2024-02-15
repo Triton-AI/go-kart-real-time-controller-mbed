@@ -90,11 +90,14 @@ namespace tritonai::gkc
             _packet.autonomy_mode = Map.getAutonomyMode(
                 busData[ELRS_TRI_SWITCH_RIGHT]
             );
+
+            _is_ready = true;
         }
     }
 
     RCController::RCController() :
-        _receiver(REMOTE_UART_RX_PIN,REMOTE_UART_TX_PIN)
+        _receiver(REMOTE_UART_RX_PIN,REMOTE_UART_TX_PIN),
+        _is_ready(false)
     {
         _rc_thread.start(callback(this, &RCController::update));
         std::cout << "RCController created" << std::endl;

@@ -184,20 +184,6 @@ public:
   void decode(const RawGkcPacket & raw);
   void publish(GkcPacketSubscriber & sub) {sub.packet_callback(*this);}
 };
-class RCControlGkcPacket : public GkcPacket
-{
-public:
-  static constexpr uint8_t FIRST_BYTE = 0xAB;
-  float throttle;  // paddle percentage out of 1.0
-  float steering;  // average front wheel angle in radian
-  float brake;  // target brake pressure in psi
-  bool is_active;  // whether the emergency stop is active
-  AutonomyMode autonomy_mode; // the autonomy mode
-  RawGkcPacket::SharedPtr encode() const;
-  void decode(const RawGkcPacket & raw);
-  void publish(GkcPacketSubscriber & sub) {sub.packet_callback(*this);}
-};
-
 class SensorGkcPacket : public GkcPacket
 {
 public:
@@ -226,6 +212,19 @@ public:
     bool fault_warning;
     bool fault_info;
   } values;
+  RawGkcPacket::SharedPtr encode() const;
+  void decode(const RawGkcPacket & raw);
+  void publish(GkcPacketSubscriber & sub) {sub.packet_callback(*this);}
+};
+class RCControlGkcPacket : public GkcPacket
+{
+public:
+  static constexpr uint8_t FIRST_BYTE = 0xAE;
+  float throttle;  // paddle percentage out of 1.0
+  float steering;  // average front wheel angle in radian
+  float brake;  // target brake pressure in psi
+  bool is_active;  // whether the emergency stop is active
+  AutonomyMode autonomy_mode; // the autonomy mode
   RawGkcPacket::SharedPtr encode() const;
   void decode(const RawGkcPacket & raw);
   void publish(GkcPacketSubscriber & sub) {sub.packet_callback(*this);}

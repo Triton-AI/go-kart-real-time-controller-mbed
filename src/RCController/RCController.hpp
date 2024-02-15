@@ -25,17 +25,22 @@ class RCController
 {
     public:
     RCController();
-    const RCControlGkcPacket& getPacket() const{ return _packet;}
+    const RCControlGkcPacket& getPacket(){ 
+        _is_ready = false;
+        return _packet;
+    }
 
     protected:
     void update();
     Translation Map;
     Thread _rc_thread{osPriorityNormal, OS_STACK_SIZE*2, nullptr, "rc_thread"};
+    
 
     private:
     elrc_receiver _receiver;
     RCControlGkcPacket _packet;
     bool _is_ready;
+    
 };
 
 } // namespace tritonai::gkc

@@ -143,8 +143,8 @@ public:
     // TODO(haoru): reinterpret_cast?
     to_read = *static_cast<const T *>(static_cast<const void *>(&(*where)));
 
-    unsigned char *p = (unsigned char *) &to_read;
-    int i;
+    // unsigned char *p = (unsigned char *) &to_read;
+    // int i;
 
     // std::cout << "Bytes: ";
     // for (i = 0; i < sizeof(to_read); i++)
