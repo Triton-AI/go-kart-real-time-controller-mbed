@@ -28,7 +28,7 @@ protected:
   typedef std::pair<Watchable *, TimeElapsed> WatchlistEntry;
   typedef std::vector<WatchlistEntry> Watchlist;
   Watchlist watchlist{};
-  Thread watch_thread;
+  Thread watch_thread{osPriorityNormal, OS_STACK_SIZE, nullptr, "watch_thread"};
   uint32_t watchdog_interval_ms_;
 
   void start_watch_thread();

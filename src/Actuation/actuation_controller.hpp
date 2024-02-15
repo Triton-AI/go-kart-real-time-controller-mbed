@@ -77,12 +77,12 @@ protected:
   float angle_steering_cmd{0.0};
   float current_brake_cmd{0.0};
 
-  Thread can_transmit_thread;
-  Thread throttle_thread;
-  Thread steering_thread;
-  Thread steering_pid_thread;
-  Thread brake_thread;
-  Thread sensor_poll_thread;
+  Thread can_transmit_thread{osPriorityNormal,OS_STACK_SIZE,nullptr, "can_transmit_thread"};
+  Thread throttle_thread{osPriorityNormal,OS_STACK_SIZE,nullptr, "throttle_thread"};
+  Thread steering_thread{osPriorityNormal,OS_STACK_SIZE,nullptr, "steering_thread"};
+  Thread steering_pid_thread{osPriorityNormal,OS_STACK_SIZE,nullptr, "steering_pid_thread"};
+  Thread brake_thread{osPriorityNormal,OS_STACK_SIZE,nullptr, "brake_thread"};
+  Thread sensor_poll_thread{osPriorityNormal,OS_STACK_SIZE,nullptr, "sensor_poll_thread"};
 
   ActuationSensors sensors{};
 

@@ -28,8 +28,6 @@
 #include <string>
 #include <utility>
 
-#define M_PI 3.14159265
-
 /**
  *
  * @brief VESC CAN message ID generator functions

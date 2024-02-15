@@ -43,7 +43,7 @@ namespace tritonai::gkc
       SensorReader _sensor_reader;
       ActuationController _actuation;
 
-      Thread _keep_alive_thread;
+      Thread _keep_alive_thread{osPriorityNormal, OS_STACK_SIZE, nullptr, "keep_alive_thread"};
   };
 }
 

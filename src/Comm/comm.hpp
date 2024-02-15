@@ -41,14 +41,14 @@ protected:
   std::unique_ptr<GkcPacketFactory> factory_;
   Queue<GkcBuffer, SEND_QUEUE_SIZE> send_queue_;
   std::queue<std::shared_ptr<GkcBuffer>> send_queue_data_;
-  Thread send_thread;
+  Thread send_thread{osPriorityNormal, OS_STACK_SIZE, nullptr, "send_thread"};
 #ifdef COMM_USB_SERIAL
   std::unique_ptr<USBSerial> usb_serial_;
 #endif
 
 #ifdef COMM_UART_SERIAL
   std::unique_ptr<BufferedSerial> uart_serial_;
-  Thread uart_serial_thread_;
+  Thread uart_serial_thread_{osPriorityNormal, OS_STACK_SIZE, nullptr, "uart_serial_thread"};
 #endif
 
   void recv_callback();

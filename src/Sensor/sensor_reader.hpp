@@ -57,7 +57,8 @@ protected:
   Mutex providers_lock_;
   std::chrono::milliseconds poll_interval_{DEFAULT_SENSOR_POLL_INTERVAL_MS};
 
-  Thread sensor_poll_thread;
+  Thread sensor_poll_thread{osPriorityNormal, OS_STACK_SIZE, nullptr,
+                            "sensor_poll_thread"};
   void sensor_poll_thread_impl();
 
   // TODO include QEI.h and add a pointer to qei
