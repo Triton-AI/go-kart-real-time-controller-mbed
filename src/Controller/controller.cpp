@@ -43,13 +43,6 @@ namespace tritonai::gkc
     while(1){
       ThisThread::sleep_for(std::chrono::milliseconds(20));
       this->inc_count();
-
-      ControlGkcPacket packet;
-      packet.brake = 0.1;
-      packet.throttle = 0.1;
-      packet.steering = 0.1;
-      
-      this->packet_callback(packet);
     }
   }
 
@@ -102,7 +95,7 @@ namespace tritonai::gkc
 
   void Controller::packet_callback(const ControlGkcPacket &packet)
   {
-    // std::cout << "ControlGkcPacket received" << std::endl;
+    std::cout << "ControlGkcPacket received" << std::endl;
     _actuation.set_throttle_cmd(new float(packet.throttle));
     _actuation.set_steering_cmd(new float(packet.steering));
     _actuation.set_brake_cmd(new float(packet.brake));
