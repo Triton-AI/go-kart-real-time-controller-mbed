@@ -33,6 +33,7 @@ namespace tritonai::gkc
       void packet_callback(const Shutdown1GkcPacket & packet);
       void packet_callback(const Shutdown2GkcPacket & packet);
       void packet_callback(const LogPacket & packet);
+      void packet_callback(const RCControlGkcPacket & packet);
 
       void send_log(const LogPacket::Severity &severity, 
                     const std::string &what) override;

@@ -172,4 +172,12 @@
 #define Red_Pin PD_12
 
 
+//// ELRS
+#define ELRS_THROTLE 1
+#define ELRS_STEERING 3
+#define ELRS_EMERGENCY_STOP_LEFT 4
+#define ELRS_EMERGENCY_STOP_RIGHT 7
+#define ELRS_TRI_SWITCH_RIGHT 6
+
+
 #endif // CONFIG_HPP_

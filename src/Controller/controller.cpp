@@ -120,4 +120,9 @@ namespace tritonai::gkc
   {
     std::cout << "LogPacket received" << std::endl;
   }
+
+  void Controller::packet_callback(const RCControlGkcPacket &packet)
+  {
+    std::cout << "RCControlGkcPacket received" << std::endl;
+  }
 } // namespace tritonai::gkc

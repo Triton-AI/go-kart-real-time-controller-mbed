@@ -49,6 +49,7 @@ public:
   virtual void packet_callback(const Shutdown1GkcPacket & packet) = 0;
   virtual void packet_callback(const Shutdown2GkcPacket & packet) = 0;
   virtual void packet_callback(const LogPacket & packet) = 0;
+  virtual voud packet_callback(const RCControlGkcPacket & packet) = 0;
 };
 }  // namespace gkc
 }  // namespace tritonai
