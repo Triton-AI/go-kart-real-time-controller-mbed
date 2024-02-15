@@ -27,13 +27,16 @@ void Watchdog::add_to_watchlist(Watchable *to_watch) {
   //intialized at 0 
 }
 
-void Watchdog::arm() { activate(); }//calls the activate function of the Watchdog object
+void Watchdog::arm() { 
+  for (auto &entry : watchlist) {
+    entry.first->activate();
+  }//calls the activate function of the Watchdog object
+}
 
 void Watchdog::disarm() {
-  deactivate();
-  // Basically resets inactivity timers  for each entry in the watchlist 
-  for (auto entry : watchlist) {//iterates over each element of the 'watchlist'
-    entry.second = 0;//set the secondmember of the 'watchhlistEntry object to 0 
+  for (auto &entry : watchlist) {//iterates over each element of the 'watchlist'
+    entry.first->deactivate();//calls the deactivate function of the Watchdog object
+    entry.second = 0;//sets the second element of the WatchlistEntry object to 0
   }
 }
 
@@ -51,25 +54,36 @@ void Watchdog::start_watch_thread() {
           std::chrono::duration_cast<std::chrono::milliseconds>(
               Kernel::Clock::now() - last_time); //updates inactivity timers for each element in the watchlist vector
       for (auto &entry : watchlist) {//check each element in the watchlist vector 
-        if (entry.second > entry.first->get_update_interval()) {
-          // Enough time has passed to checkup on this watchable object
-          if (entry.first->check_activity() || !entry.first->is_activated()) {
+        if (!entry.first->is_activated()){ continue;} // If the watchable object is not activated, skip it
+
+        entry.second += time_elapsed_ms.count(); // Add the time elapsed since the last iteration to the inactivity timer for the current watchable object
+
+        // Check if enough time has passed to check for activity
+        if (entry.second > entry.first->get_update_interval())
+        {
+          if (entry.first->check_activity()) 
+          {
             // Activity found. Reset counter.
             entry.second = 0;
             std::cout << "Activity found in " << entry.first->get_name()
                       << std::endl; 
-          } else {
+          } 
+          else 
+          {
             // No activity. Increment inactivity counter.
             entry.second += time_elapsed_ms.count();
+            // std::cout << "No activity in " << entry.first->get_name()
+            //           << " time at:" << entry.second << std::endl;
             if (entry.second > entry.first->get_max_inactivity_limit_ms()) {
               // inactivity timer exceeds the maximum inactivity limit
               // Watchdog triggered.
+              std::cout << "Watchdog triggered for " << entry.first->get_name()
+                        << std::endl;
               entry.first->watchdog_trigger();
             }
           }
-        } else {
-          entry.second += time_elapsed_ms.count();
         }
+        
       }
     }
 

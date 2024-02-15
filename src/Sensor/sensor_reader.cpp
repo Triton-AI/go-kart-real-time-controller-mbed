@@ -32,6 +32,7 @@ SensorReader::SensorReader()
   sensor_poll_thread.start(
       callback(this, &SensorReader::sensor_poll_thread_impl));
   // std::cout << "Sensor initialized" << std::endl;
+  attach(callback(this, &SensorReader::watchdog_callback));
 }
 
 void SensorReader::sensor_poll_thread_impl() {
@@ -44,6 +45,7 @@ void SensorReader::sensor_poll_thread_impl() {
     }
     providers_lock_.unlock();
     //Waits for a time specified by poll_interval
+    this->inc_count(); // Increments the count of the watchdog
     ThisThread::sleep_for(poll_interval_);
   }
 }

@@ -68,6 +68,9 @@
 // How often shoudl the communication manager polling happen
 #define DEFAULT_COMM_POLL_INTERVAL_MS 1000
 #define DEFAULT_COMM_POLL_LOST_TOLERANCE_MS 3000
+// How ofteh the controller should be checked by watchdog
+#define DEFAULT_CONTROLLER_POLL_INTERVAL_MS 1000
+#define DEFAULT_CONTROLLER_POLL_LOST_TOLERANCE_MS 3000
 
 // *********
 // Actuation

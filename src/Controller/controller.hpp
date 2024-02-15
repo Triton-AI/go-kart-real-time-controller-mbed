@@ -8,10 +8,14 @@
 namespace tritonai::gkc
 {
   class Controller :
-    public GkcPacketSubscriber
+    public GkcPacketSubscriber,
+    public Watchable
   {
     public:
       Controller();
+
+      void watchdog_callback();
+      void keep_alive();
 
     protected:
       void packet_callback(const Handshake1GkcPacket & packet);
@@ -32,6 +36,8 @@ namespace tritonai::gkc
       CommManager _comm;
       Watchdog _watchdog;
       SensorReader _sensor_reader;
+
+      Thread _keep_alive_thread;
   };
 }
 
