@@ -92,12 +92,22 @@ namespace tritonai::gkc
                 continue; // Stop if the values are the same
             }
 
-            _packet.is_active = Map.is_active(
+            // Stop if the emergency stop is not active
+            bool temp_active = Map.is_active(
                 busData[ELRS_EMERGENCY_STOP_LEFT],
                 busData[ELRS_EMERGENCY_STOP_RIGHT]
             );
 
-            if(!_packet.is_active) continue; // Stop if the emergency stop is active
+            if(temp_active == false && _packet.is_active == false) continue; // Stop if the values are the same
+
+            if(!temp_active){
+                _packet.throttle = 0.0;
+                _packet.steering = 0.0;
+                _packet.brake = 0.2;
+                _packet.is_active = temp_active;
+                _packet.publish(*_sub);
+                continue;
+            }
 
 
             _packet.throttle = Map.throttle(busData[ELRS_THROTLE]);
@@ -106,6 +116,7 @@ namespace tritonai::gkc
             _packet.autonomy_mode = Map.getAutonomyMode(
                 busData[ELRS_TRI_SWITCH_RIGHT]
             );
+            _packet.is_active = temp_active;
 
             _is_ready = true;
 

@@ -125,9 +125,13 @@ namespace tritonai::gkc
   void Controller::packet_callback(const RCControlGkcPacket &packet)
   {
     send_log(LogPacket::Severity::INFO, 
-             "RCControlGkcPacket receive");
+            "RCControlGkcPacket received: throttle: " + std::to_string((int)(packet.throttle * 100)) + "%, " +
+            "steering: " + std::to_string((int)(packet.steering * 100)) + "%, " +
+            "brake: " + std::to_string((int)(packet.brake * 100)) + "%, " +
+            "autonomy_mode: " + std::to_string(packet.autonomy_mode) + ", " +
+            "is_active: " + std::to_string(packet.is_active)
+    );
 
-    if(!packet.is_active) return; // If the emergency stop is active, do nothing
 
     _actuation.set_throttle_cmd(new float(packet.throttle));
     _actuation.set_steering_cmd(new float(packet.steering));
