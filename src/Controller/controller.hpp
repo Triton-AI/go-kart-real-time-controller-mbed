@@ -6,6 +6,8 @@
 #include "Watchdog/watchdog.hpp"
 #include "Sensor/sensor_reader.hpp"
 #include "Actuation/actuation_controller.hpp"
+#include "RCController/RCController.hpp"
+
 namespace tritonai::gkc
 {
   class Controller :
@@ -43,6 +45,7 @@ namespace tritonai::gkc
       Watchdog _watchdog;
       SensorReader _sensor_reader;
       ActuationController _actuation;
+      RCController _rc_controller;
 
       Thread _keep_alive_thread{osPriorityNormal, OS_STACK_SIZE, nullptr, "keep_alive_thread"};
   };

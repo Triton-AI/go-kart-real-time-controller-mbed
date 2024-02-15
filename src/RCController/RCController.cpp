@@ -68,16 +68,29 @@ namespace tritonai::gkc
     // RCController  
     void RCController::update() 
     {
+        const uint16_t *busData = _receiver.busData();
         while (true)
         {  
-            ThisThread::sleep_for(100ms);
+            ThisThread::sleep_for(10ms);
 
             if (!_receiver.gatherData()) continue; // Stop if no data available
             
 
             if(!_receiver.messageAvailable) continue; // Stop if no message available
 
-            const uint16_t *busData = _receiver.busData();
+            // Check if the values are the same as the previous ones
+            if (Map.throttle(busData[ELRS_THROTLE]) == _packet.throttle &&
+                Map.steering(busData[ELRS_STEERING]) == _packet.steering &&
+                Map.is_active(
+                    busData[ELRS_EMERGENCY_STOP_LEFT],
+                    busData[ELRS_EMERGENCY_STOP_RIGHT]
+                ) == _packet.is_active &&
+                Map.getAutonomyMode(
+                    busData[ELRS_TRI_SWITCH_RIGHT]
+                ) == _packet.autonomy_mode)
+            {
+                continue; // Stop if the values are the same
+            }
 
 
             _packet.throttle = Map.throttle(busData[ELRS_THROTLE]);
@@ -92,12 +105,17 @@ namespace tritonai::gkc
             );
 
             _is_ready = true;
+
+            
+
+            _packet.publish(*_sub);
         }
     }
 
-    RCController::RCController() :
+    RCController::RCController(GkcPacketSubscriber *sub) :
         _receiver(REMOTE_UART_RX_PIN,REMOTE_UART_TX_PIN),
-        _is_ready(false)
+        _is_ready(false),
+        _sub(sub)
     {
         _rc_thread.start(callback(this, &RCController::update));
         std::cout << "RCController created" << std::endl;

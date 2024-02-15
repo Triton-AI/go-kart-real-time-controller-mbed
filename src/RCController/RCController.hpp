@@ -24,7 +24,7 @@ struct Translation
 class RCController
 {
     public:
-    RCController();
+    explicit RCController(GkcPacketSubscriber *sub);
     const RCControlGkcPacket& getPacket(){ 
         _is_ready = false;
         return _packet;
@@ -40,6 +40,7 @@ class RCController
     elrc_receiver _receiver;
     RCControlGkcPacket _packet{};
     bool _is_ready;
+    GkcPacketSubscriber *_sub;
     
 };
 

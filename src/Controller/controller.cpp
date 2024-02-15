@@ -13,7 +13,8 @@ namespace tritonai::gkc
     _comm(this), // Passes the controller as the subscriber to the comm manager
     _watchdog(DEFAULT_WD_INTERVAL_MS, DEFAULT_WD_MAX_INACTIVITY_MS, DEFAULT_WD_WAKEUP_INTERVAL_MS), // Initializes the watchdog with default values
     _sensor_reader(), // Initializes the sensor reader
-    _actuation(this) // Passes the controller as the logger to the actuation controller
+    _actuation(this), // Passes the controller as the logger to the actuation controller
+    _rc_controller(this) // Passes the controller as the packet subscriber to the RC controller
   {
     // Attaches the watchdog callback to the controller
     attach(callback(this, &Controller::watchdog_callback));
@@ -123,6 +124,12 @@ namespace tritonai::gkc
 
   void Controller::packet_callback(const RCControlGkcPacket &packet)
   {
-    std::cout << "RCControlGkcPacket received" << std::endl;
+    // std::cout << "RCControlGkcPacket received" << std::endl;
+    std::cout << "Throttle: " << packet.throttle
+              << " Steering: " << packet.steering
+              << " Brake: " << packet.brake
+              << " Is Active: " << packet.is_active
+              << " Autonomy Mode: " << packet.autonomy_mode
+              << std::endl;
   }
 } // namespace tritonai::gkc
