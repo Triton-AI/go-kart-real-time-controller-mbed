@@ -69,7 +69,7 @@ namespace tritonai::gkc
     void RCController::update() 
     {
         while (true)
-        {   
+        {  
             ThisThread::sleep_for(100ms);
 
             if (!_receiver.gatherData()) continue; // Stop if no data available

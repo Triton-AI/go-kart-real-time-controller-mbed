@@ -38,7 +38,7 @@ class RCController
 
     private:
     elrc_receiver _receiver;
-    RCControlGkcPacket _packet;
+    RCControlGkcPacket _packet{};
     bool _is_ready;
     
 };

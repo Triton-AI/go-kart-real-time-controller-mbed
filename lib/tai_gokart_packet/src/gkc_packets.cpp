@@ -245,6 +245,26 @@ void ControlGkcPacket::decode(const RawGkcPacket & raw)
 }
 
 /*
+RCControl
+*/
+RawGkcPacket::SharedPtr RCControlGkcPacket::encode() const
+{
+  GkcBuffer payload = GkcBuffer(13, 0);
+  payload[0] = FIRST_BYTE;
+  auto pos_steering = GkcPacketUtils::write_to_buffer(payload.begin() + 1, throttle);
+  auto pos_brake = GkcPacketUtils::write_to_buffer(pos_steering, steering);
+  GkcPacketUtils::write_to_buffer(pos_brake, brake);
+  return std::make_unique<RawGkcPacket>(payload);
+}
+
+void RCControlGkcPacket::decode(const RawGkcPacket & raw)
+{
+  auto pos_steering = GkcPacketUtils::read_from_buffer(raw.payload.begin() + 1, throttle);
+  auto pos_brake = GkcPacketUtils::read_from_buffer(pos_steering, steering);
+  GkcPacketUtils::read_from_buffer(pos_brake, brake);
+}
+
+/*
 Sensors
 */
 RawGkcPacket::SharedPtr SensorGkcPacket::encode() const
