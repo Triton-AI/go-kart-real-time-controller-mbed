@@ -7,21 +7,24 @@
 #include "Sensor/sensor_reader.hpp"
 #include "Actuation/actuation_controller.hpp"
 #include "RCController/RCController.hpp"
+#include "StateMachine/state_machine.hpp"
 
 namespace tritonai::gkc
 {
   class Controller :
     public GkcPacketSubscriber,
     public Watchable,
-    public ILogger
+    public ILogger,
+    public GkcStateMachine
   {
     public:
       Controller();
 
-      void watchdog_callback();
+      // For testing purposes
       void keep_alive();
 
     protected:
+      // GkcPacketSubscriber API
       void packet_callback(const Handshake1GkcPacket & packet);
       void packet_callback(const Handshake2GkcPacket & packet);
       void packet_callback(const GetFirmwareVersionGkcPacket & packet);
@@ -37,8 +40,19 @@ namespace tritonai::gkc
       void packet_callback(const LogPacket & packet);
       void packet_callback(const RCControlGkcPacket & packet);
 
+      // ILogger API
       void send_log(const LogPacket::Severity &severity, 
                     const std::string &what) override;
+
+      // Watchable API
+      void watchdog_callback();
+
+      // GkcStateMachine API
+      StateTransitionResult on_initialize(const GkcLifecycle &last_state) override;
+      StateTransitionResult on_deactivate(const GkcLifecycle &last_state) override;
+      StateTransitionResult on_activate(const GkcLifecycle &last_state) override;
+      StateTransitionResult on_emergency_stop(const GkcLifecycle &last_state) override;
+      StateTransitionResult on_reinitialize(const GkcLifecycle &last_state) override;
 
     private:
       CommManager _comm;

@@ -8,8 +8,19 @@
 
 namespace tritonai::gkc
 {
+  // TODO: remove this function in production
+  void Controller::keep_alive()
+  {
+    while(1){
+      ThisThread::sleep_for(std::chrono::milliseconds(20));
+      this->inc_count();
+    }
+  }
+
+  // Controller initialization
   Controller::Controller() :
     Watchable(DEFAULT_CONTROLLER_POLL_INTERVAL_MS, DEFAULT_CONTROLLER_POLL_LOST_TOLERANCE_MS, "Controller"), // Initializes the controller with default values
+    GkcStateMachine(), // Initializes the state machine
     _comm(this), // Passes the controller as the subscriber to the comm manager
     _watchdog(DEFAULT_WD_INTERVAL_MS, DEFAULT_WD_MAX_INACTIVITY_MS, DEFAULT_WD_WAKEUP_INTERVAL_MS), // Initializes the watchdog with default values
     _sensor_reader(), // Initializes the sensor reader
@@ -38,14 +49,6 @@ namespace tritonai::gkc
   {
     send_log(LogPacket::Severity::ERROR, "Controller watchdog trigger");
     NVIC_SystemReset();
-  }
-
-  void Controller::keep_alive()
-  {
-    while(1){
-      ThisThread::sleep_for(std::chrono::milliseconds(20));
-      this->inc_count();
-    }
   }
 
   // ILogger API IMPLEMENTATION
@@ -138,5 +141,36 @@ namespace tritonai::gkc
     _actuation.set_steering_cmd(new float(packet.steering));
     _actuation.set_brake_cmd(new float(packet.brake));
 
+  }
+
+  // GkcStateMachine API IMPLEMENTATION
+  StateTransitionResult Controller::on_initialize(const GkcLifecycle &last_state)
+  {
+    send_log(LogPacket::Severity::INFO, "Controller initializing");
+    return StateTransitionResult::SUCCESS;
+  }
+
+  StateTransitionResult Controller::on_deactivate(const GkcLifecycle &last_state)
+  {
+    send_log(LogPacket::Severity::INFO, "Controller deactivating");
+    return StateTransitionResult::SUCCESS;
+  }
+
+  StateTransitionResult Controller::on_activate(const GkcLifecycle &last_state)
+  {
+    send_log(LogPacket::Severity::INFO, "Controller activating");
+    return StateTransitionResult::SUCCESS;
+  }
+
+  StateTransitionResult Controller::on_emergency_stop(const GkcLifecycle &last_state)
+  {
+    send_log(LogPacket::Severity::INFO, "Controller emergency stopping");
+    return StateTransitionResult::SUCCESS;
+  }
+
+  StateTransitionResult Controller::on_reinitialize(const GkcLifecycle &last_state)
+  {
+    send_log(LogPacket::Severity::INFO, "Controller reinitializing");
+    return StateTransitionResult::SUCCESS;
   }
 } // namespace tritonai::gkc
