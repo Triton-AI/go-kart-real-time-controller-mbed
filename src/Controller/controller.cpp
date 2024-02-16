@@ -62,12 +62,14 @@ namespace tritonai::gkc
   {
     send_log(LogPacket::Severity::INFO, "Handshake1GkcPacket received");
 
+    // If the controller is uninitialized, initialize it
     if(get_state() == GkcLifecycle::Uninitialized)
     {
       send_log(LogPacket::Severity::INFO, "Controller transitioning to Initializing");
       initialize();
     }
 
+    // If the controller has successfully initialized, send a Handshake2GkcPacket
     if(get_state() == GkcLifecycle::Inactive)
     {
       Handshake2GkcPacket response;
