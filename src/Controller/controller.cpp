@@ -61,14 +61,24 @@ namespace tritonai::gkc
   void Controller::packet_callback(const Handshake1GkcPacket &packet)
   {
     send_log(LogPacket::Severity::INFO, "Handshake1GkcPacket received");
-    Handshake2GkcPacket response;
-    response.seq_number += packet.seq_number + 1;
-    _comm.send(response);
+
+    if(get_state() == GkcLifecycle::Uninitialized)
+    {
+      send_log(LogPacket::Severity::INFO, "Controller transitioning to Initializing");
+      initialize();
+    }
+
+    if(get_state() == GkcLifecycle::Inactive)
+    {
+      Handshake2GkcPacket response;
+      response.seq_number += packet.seq_number + 1;
+      _comm.send(response);
+    }
   }
 
   void Controller::packet_callback(const Handshake2GkcPacket &packet)
   {
-    std::cout << "Handshake2GkcPacket received, should not happen, ignoring." << std::endl;
+    send_log(LogPacket::Severity::INFO, "Handshake2GkcPacket received, should not happen, ignoring.");
   }
 
   void Controller::packet_callback(const GetFirmwareVersionGkcPacket &packet)
