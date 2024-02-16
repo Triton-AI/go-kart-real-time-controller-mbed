@@ -136,7 +136,6 @@ namespace tritonai::gkc
     {
         _rc_thread.start(callback(this, &RCController::update));
         attach(callback(this, &RCController::watchdog_callback));
-        std::cout << "RCController initialized" << std::endl;
     }
 
     void RCController::watchdog_callback()

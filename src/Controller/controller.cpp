@@ -11,8 +11,37 @@ namespace tritonai::gkc
   // TODO: remove this function in production
   void Controller::keep_alive()
   {
+    GkcLifecycle last_state = GkcLifecycle::Emergency;
     while(1){
-      ThisThread::sleep_for(std::chrono::milliseconds(20));
+      ThisThread::sleep_for(std::chrono::milliseconds(100));
+      // State to string
+      std::string state;
+      switch(get_state())
+      {
+        case GkcLifecycle::Uninitialized:
+          state = "Uninitialized";
+          break;
+        case GkcLifecycle::Inactive:
+          state = "Inactive";
+          break;
+        case GkcLifecycle::Active:
+          state = "Active";
+          break;
+        case GkcLifecycle::Emergency:
+          state = "EmergencyStop";
+          break;
+        case GkcLifecycle::Initializing:
+          state = "Initializing";
+          break;
+        default:
+          state = "Unknown";
+          break;
+      }
+      if (last_state != get_state())
+      {
+        send_log(LogPacket::Severity::WARNING, "Controller state: " + state);
+        last_state = get_state();
+      }
       this->inc_count();
     }
   }
@@ -21,6 +50,7 @@ namespace tritonai::gkc
   Controller::Controller() :
     Watchable(DEFAULT_CONTROLLER_POLL_INTERVAL_MS, DEFAULT_CONTROLLER_POLL_LOST_TOLERANCE_MS, "Controller"), // Initializes the controller with default values
     GkcStateMachine(), // Initializes the state machine
+    _severity(LogPacket::Severity::WARNING), // Initializes the severity of the logger
     _comm(this), // Passes the controller as the subscriber to the comm manager
     _watchdog(DEFAULT_WD_INTERVAL_MS, DEFAULT_WD_MAX_INACTIVITY_MS, DEFAULT_WD_WAKEUP_INTERVAL_MS), // Initializes the watchdog with default values
     _sensor_reader(), // Initializes the sensor reader
@@ -54,7 +84,18 @@ namespace tritonai::gkc
   // ILogger API IMPLEMENTATION
   void Controller::send_log(const LogPacket::Severity &severity, const std::string &what)
   {
-    // std::cout << "Log: " << what << std::endl;
+    
+    if(severity == LogPacket::Severity::FATAL && _severity <= severity)
+      std::cerr << "Fatal: " << what << std::endl;
+    else if(severity == LogPacket::Severity::ERROR && _severity <= severity)
+      std::cerr << "Error: " << what << std::endl;
+    else if(severity == LogPacket::Severity::WARNING && _severity <= severity)
+      std::cerr << "Warning: " << what << std::endl;
+    else if(severity == LogPacket::Severity::INFO && _severity <= severity)
+      std::cout << "Info: " << what << std::endl;
+    // else
+    //   std::cout << "Debug: " << what << std::endl;
+
   }
 
   // PACKET CALLBACKS API IMPLEMENTATION
@@ -85,7 +126,7 @@ namespace tritonai::gkc
 
   void Controller::packet_callback(const GetFirmwareVersionGkcPacket &packet)
   {
-    std::cout << "GetFirmwareVersionGkcPacket received" << std::endl;
+    send_log(LogPacket::Severity::INFO, "GetFirmwareVersionGkcPacket received");
   }
 
   void Controller::packet_callback(const FirmwareVersionGkcPacket &packet)

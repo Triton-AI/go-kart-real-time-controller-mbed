@@ -43,6 +43,7 @@ namespace tritonai::gkc
       // ILogger API
       void send_log(const LogPacket::Severity &severity, 
                     const std::string &what) override;
+      LogPacket::Severity _severity;
 
       // Watchable API
       void watchdog_callback();
@@ -60,6 +61,7 @@ namespace tritonai::gkc
       SensorReader _sensor_reader;
       ActuationController _actuation;
       RCController _rc_controller;
+
 
       Thread _keep_alive_thread{osPriorityNormal, OS_STACK_SIZE, nullptr, "keep_alive_thread"};
   };
