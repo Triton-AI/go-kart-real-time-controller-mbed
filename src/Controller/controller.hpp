@@ -29,7 +29,7 @@ namespace tritonai::gkc
       void packet_callback(const Handshake2GkcPacket & packet);
       void packet_callback(const GetFirmwareVersionGkcPacket & packet);
       void packet_callback(const FirmwareVersionGkcPacket & packet);
-      void packet_callback(const ResetMcuGkcPacket & packet);
+      void packet_callback(const ResetRTCGkcPacket & packet);
       void packet_callback(const HeartbeatGkcPacket & packet);
       void packet_callback(const ConfigGkcPacket & packet);
       void packet_callback(const StateTransitionGkcPacket & packet);

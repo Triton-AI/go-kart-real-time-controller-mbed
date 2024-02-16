@@ -155,7 +155,7 @@ void FirmwareVersionGkcPacket::decode(const RawGkcPacket & raw)
 /*
 Reset IMU
 */
-RawGkcPacket::SharedPtr ResetMcuGkcPacket::encode() const
+RawGkcPacket::SharedPtr ResetRTCGkcPacket::encode() const
 {
   GkcBuffer payload = GkcBuffer(5, 0);
   payload[0] = FIRST_BYTE;
@@ -163,7 +163,7 @@ RawGkcPacket::SharedPtr ResetMcuGkcPacket::encode() const
   return std::make_unique<RawGkcPacket>(payload);
 }
 
-void ResetMcuGkcPacket::decode(const RawGkcPacket & raw)
+void ResetRTCGkcPacket::decode(const RawGkcPacket & raw)
 {
   GkcPacketUtils::read_from_buffer<uint32_t>(
     raw.payload.begin() + 1,

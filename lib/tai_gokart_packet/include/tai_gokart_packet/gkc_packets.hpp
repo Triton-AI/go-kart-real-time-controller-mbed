@@ -110,7 +110,7 @@ public:
   void publish(GkcPacketSubscriber & sub) {sub.packet_callback(*this);}
 };
 
-class ResetMcuGkcPacket : public GkcPacket
+class ResetRTCGkcPacket : public GkcPacket
 {
 public:
   static constexpr uint8_t FIRST_BYTE = 0xFF;

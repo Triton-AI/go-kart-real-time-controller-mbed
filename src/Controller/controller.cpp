@@ -141,9 +141,10 @@ namespace tritonai::gkc
     send_log(LogPacket::Severity::INFO, "FirmwareVersionGkcPacket received, should not happen, ignoring.");
   }
 
-  void Controller::packet_callback(const ResetMcuGkcPacket &packet)
+  void Controller::packet_callback(const ResetRTCGkcPacket &packet)
   {
-    std::cout << "ResetMcuGkcPacket received" << std::endl;
+    send_log(LogPacket::Severity::FATAL, "ResetRTCGkcPacket received");
+    NVIC_SystemReset();
   }
 
   void Controller::packet_callback(const HeartbeatGkcPacket &packet)

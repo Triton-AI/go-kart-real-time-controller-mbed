@@ -19,7 +19,7 @@ class Handshake1GkcPacket;
 class Handshake2GkcPacket;
 class GetFirmwareVersionGkcPacket;
 class FirmwareVersionGkcPacket;
-class ResetMcuGkcPacket;
+class ResetRTCGkcPacket;
 class HeartbeatGkcPacket;
 class ConfigGkcPacket;
 class StateTransitionGkcPacket;
@@ -41,7 +41,7 @@ public:
   virtual void packet_callback(const Handshake2GkcPacket & packet) = 0;
   virtual void packet_callback(const GetFirmwareVersionGkcPacket & packet) = 0;
   virtual void packet_callback(const FirmwareVersionGkcPacket & packet) = 0;
-  virtual void packet_callback(const ResetMcuGkcPacket & packet) = 0;
+  virtual void packet_callback(const ResetRTCGkcPacket & packet) = 0;
   virtual void packet_callback(const HeartbeatGkcPacket & packet) = 0;
   virtual void packet_callback(const ConfigGkcPacket & packet) = 0;
   virtual void packet_callback(const StateTransitionGkcPacket & packet) = 0;
