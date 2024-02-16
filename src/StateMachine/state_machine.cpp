@@ -121,7 +121,8 @@ StateTransitionResult GkcStateMachine::activate() {
 StateTransitionResult GkcStateMachine::emergency_stop() {
   // Checks that the current state is not uninitialized or initializing
   if (state_  != GkcLifecycle::Emergency) {
-    return StateTransitionResult::EMERGENCY_STOP;
+    state_ = GkcLifecycle::Emergency;
+    return emergency_stop();
   }
   // Calls on_emergency_stop and checks the result
   const auto result = on_emergency_stop(state_);

@@ -167,7 +167,7 @@ class StateTransitionGkcPacket : public GkcPacket
 {
 public:
   static constexpr uint8_t FIRST_BYTE = 0xA1;
-  uint8_t requested_state = 0;
+  GkcLifecycle requested_state = GkcLifecycle::Emergency;
   RawGkcPacket::SharedPtr encode() const;
   void decode(const RawGkcPacket & raw);
   void publish(GkcPacketSubscriber & sub) {sub.packet_callback(*this);}

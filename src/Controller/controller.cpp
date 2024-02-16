@@ -17,7 +17,8 @@ namespace tritonai::gkc
       ThisThread::sleep_for(std::chrono::milliseconds(100));
       // State to string
       std::string state;
-      switch(get_state())
+      GkcLifecycle new_state = get_state();
+      switch(new_state)
       {
         case GkcLifecycle::Uninitialized:
           state = "Uninitialized";
@@ -38,10 +39,10 @@ namespace tritonai::gkc
           state = "Unknown";
           break;
       }
-      if (last_state != get_state())
+      if (last_state != new_state)
       {
         send_log(LogPacket::Severity::WARNING, "Controller state: " + state);
-        last_state = get_state();
+        last_state = new_state;
       }
       this->inc_count();
     }
@@ -51,7 +52,7 @@ namespace tritonai::gkc
   Controller::Controller() :
     Watchable(DEFAULT_CONTROLLER_POLL_INTERVAL_MS, DEFAULT_CONTROLLER_POLL_LOST_TOLERANCE_MS, "Controller"), // Initializes the controller with default values
     GkcStateMachine(), // Initializes the state machine
-    _severity(LogPacket::Severity::INFO), // Initializes the severity of the logger
+    _severity(LogPacket::Severity::WARNING), // Initializes the severity of the logger
     _comm(this), // Passes the controller as the subscriber to the comm manager
     _watchdog(DEFAULT_WD_INTERVAL_MS, DEFAULT_WD_MAX_INACTIVITY_MS, DEFAULT_WD_WAKEUP_INTERVAL_MS), // Initializes the watchdog with default values
     _sensor_reader(), // Initializes the sensor reader
@@ -159,7 +160,36 @@ namespace tritonai::gkc
 
   void Controller::packet_callback(const StateTransitionGkcPacket &packet)
   {
-    std::cout << "StateTransitionGkcPacket received" << std::endl;
+    send_log(LogPacket::Severity::INFO, "StateTransitionGkcPacket received");
+
+    switch(packet.requested_state)
+    {
+      case GkcLifecycle::Uninitialized:
+        send_log(LogPacket::Severity::INFO, "Controller transitioning to Uninitialized");
+        emergency_stop();
+        break;
+      case GkcLifecycle::Initializing:
+        send_log(LogPacket::Severity::INFO, "Controller asked to transition to Initializing, ignoring");
+        break;
+      case GkcLifecycle::Inactive:
+        send_log(LogPacket::Severity::INFO, "Controller transitioning to Inactive");
+        if(get_state() == GkcLifecycle::Uninitialized)
+          initialize();
+        else if(get_state() == GkcLifecycle::Active)
+          GkcStateMachine::deactivate();
+        break;
+      case GkcLifecycle::Active:
+        send_log(LogPacket::Severity::INFO, "Controller transitioning to Active");
+        GkcStateMachine::activate();
+        break;
+      case GkcLifecycle::Emergency:
+        send_log(LogPacket::Severity::INFO, "Controller transitioning to Emergency");
+        emergency_stop();
+        break;
+      default:
+        send_log(LogPacket::Severity::ERROR, "Controller asked to transition to unknown state, ignoring");
+        break;
+    }
   }
 
   void Controller::packet_callback(const ControlGkcPacket &packet)
