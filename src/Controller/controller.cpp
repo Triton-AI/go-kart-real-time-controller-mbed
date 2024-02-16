@@ -238,7 +238,22 @@ namespace tritonai::gkc
             "is_active: " + std::to_string(packet.is_active)
     );
 
+    if(!packet.is_active){
+      send_log(LogPacket::Severity::FATAL, "RCControlGkcPacket is not active, calling emergency_stop()");
+      emergency_stop();
+    }
 
+    if(packet.autonomy_mode){
+        send_log(LogPacket::Severity::WARNING, "RCControlGkcPacket is in autonomy mode, ignoring");
+        return;
+      }
+
+    if(get_state() != GkcLifecycle::Active){
+      send_log(LogPacket::Severity::WARNING, "Controller is not active, ignoring RCControlGkcPacket");
+      return;
+    }
+
+    // No problems detected, setting the actuation commands
     _actuation.set_throttle_cmd(new float(packet.throttle));
     _actuation.set_steering_cmd(new float(packet.steering));
     _actuation.set_brake_cmd(new float(packet.brake));
