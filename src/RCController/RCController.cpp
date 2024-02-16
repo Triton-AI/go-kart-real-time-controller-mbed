@@ -80,19 +80,14 @@ namespace tritonai::gkc
 
             if(!_receiver.messageAvailable) continue; // Stop if no message available
 
-            // // Check if the values are the same as the previous ones
-            // if (Map.throttle(busData[ELRS_THROTLE]) == _packet.throttle &&
-            //     Map.steering(busData[ELRS_STEERING]) == _packet.steering &&
-            //     Map.is_active(
-            //         busData[ELRS_EMERGENCY_STOP_LEFT],
-            //         busData[ELRS_EMERGENCY_STOP_RIGHT]
-            //     ) == _packet.is_active &&
-            //     Map.getAutonomyMode(
-            //         busData[ELRS_TRI_SWITCH_RIGHT]
-            //     ) == _packet.autonomy_mode)
-            // {
-            //     continue; // Stop if the values are the same
-            // }
+            bool is_the_same_data = Map.throttle(busData[ELRS_THROTLE]) == _packet.throttle &&
+                Map.steering(busData[ELRS_STEERING]) == _packet.steering;
+
+            bool is_all_zero = busData[ELRS_THROTLE] == 0.0 && busData[ELRS_STEERING] == 0.0;
+
+            // Check if the values are the same as the previous ones
+            if (is_the_same_data && !is_all_zero)
+                continue; // Stop if the values are the same
 
             // Stop if the emergency stop is not active
             bool temp_active = Map.is_active(
