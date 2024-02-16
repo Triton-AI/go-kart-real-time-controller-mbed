@@ -63,8 +63,10 @@ namespace tritonai::gkc
       RCController _rc_controller;
 
       Thread _keep_alive_thread{osPriorityNormal, OS_STACK_SIZE, nullptr, "keep_alive_thread"};
-
       bool _rc_commanding{false};
+      Watchable _rc_heartbeat;
+      void on_rc_disconnect();
+      bool _stop_on_rc_disconnect{true};
   };
 }
 

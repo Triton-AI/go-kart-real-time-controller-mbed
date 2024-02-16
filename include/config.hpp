@@ -74,6 +74,9 @@
 // How often should the RCCOntroller be checked by watchdog
 #define DEFAULT_RC_CONTROLLER_POLL_INTERVAL_MS 1000
 #define DEFAULT_RC_CONTROLLER_POLL_LOST_TOLERANCE_MS 3000
+// How often should RC Heartbeat be checked by watchdog
+#define DEFAULT_RC_HEARTBEAT_INTERVAL_MS 100
+#define DEFAULT_RC_HEARTBEAT_LOST_TOLERANCE_MS 500
 
 
 // *********
@@ -182,6 +185,5 @@
 #define ELRS_EMERGENCY_STOP_LEFT 4
 #define ELRS_EMERGENCY_STOP_RIGHT 7
 #define ELRS_TRI_SWITCH_RIGHT 6
-
 
 #endif // CONFIG_HPP_

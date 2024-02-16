@@ -77,8 +77,8 @@ void Watchdog::start_watch_thread() {
             if (entry.second > entry.first->get_max_inactivity_limit_ms()) {
               // inactivity timer exceeds the maximum inactivity limit
               // Watchdog triggered.
-              std::cout << "Watchdog triggered for " << entry.first->get_name()
-                        << std::endl;
+              // std::cout << "Watchdog triggered for " << entry.first->get_name()
+              //           << std::endl;
               entry.first->watchdog_trigger();
             }
           }

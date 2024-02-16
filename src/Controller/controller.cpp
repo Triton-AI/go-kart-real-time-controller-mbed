@@ -49,6 +49,26 @@ namespace tritonai::gkc
     }
   }
 
+  void Controller::on_rc_disconnect()
+  {
+    if(!_stop_on_rc_disconnect)
+        return;
+
+    send_log(LogPacket::Severity::INFO, "Controller heartbeat lost");
+
+    if(get_state() != GkcLifecycle::Active)
+    {
+      send_log(LogPacket::Severity::INFO, "Controller is not active, ignoring RC controller heartbeat lost");
+      return;
+    }
+
+    send_log(LogPacket::Severity::FATAL, "RC controller heartbeat lost");
+    _actuation.set_throttle_cmd(new float(0.0));
+    _actuation.set_steering_cmd(new float(0.0));
+    _actuation.set_brake_cmd(new float(0.2));
+    emergency_stop();
+  }
+
   // Controller initialization
   Controller::Controller() :
     Watchable(DEFAULT_CONTROLLER_POLL_INTERVAL_MS, DEFAULT_CONTROLLER_POLL_LOST_TOLERANCE_MS, "Controller"), // Initializes the controller with default values
@@ -58,12 +78,15 @@ namespace tritonai::gkc
     _watchdog(DEFAULT_WD_INTERVAL_MS, DEFAULT_WD_MAX_INACTIVITY_MS, DEFAULT_WD_WAKEUP_INTERVAL_MS), // Initializes the watchdog with default values
     _sensor_reader(), // Initializes the sensor reader
     _actuation(this), // Passes the controller as the logger to the actuation controller
-    _rc_controller(this) // Passes the controller as the packet subscriber to the RC controller
+    _rc_controller(this), // Passes the controller as the packet subscriber to the RC controller
+    _rc_heartbeat(DEFAULT_RC_HEARTBEAT_INTERVAL_MS, DEFAULT_RC_HEARTBEAT_LOST_TOLERANCE_MS, "RCControllerHeartBeat") // Initializes the RC controller  heartbeat with default values
   {
     // Attaches the watchdog callback to the controller
     attach(callback(this, &Controller::watchdog_callback));
+    // Attaches the RC disconnect callback to rc heartbeat
+    _rc_heartbeat.attach(callback(this, &Controller::on_rc_disconnect));
 
-    // Add a timer that calls keep alive every 100ms
+    // TODO: Remove this Add a timer that calls keep alive every 100ms 
     _keep_alive_thread.start(callback(this, &Controller::keep_alive));
 
     // Adds the all the objects to the watchlist
@@ -71,6 +94,7 @@ namespace tritonai::gkc
     _watchdog.add_to_watchlist(&_comm); // Adds the comm manager to the watchlist
     _watchdog.add_to_watchlist(&_sensor_reader); // Adds the sensor reader to the watchlist
     _watchdog.add_to_watchlist(&_rc_controller); // Adds the RC controller to the watchlist
+    _watchdog.add_to_watchlist(&_rc_heartbeat); // Adds the RC heartbeat to the watchlist
 
     _watchdog.arm(); // Arms the watchdog
 
@@ -245,6 +269,8 @@ namespace tritonai::gkc
 
   void Controller::packet_callback(const RCControlGkcPacket &packet)
   {
+    _rc_heartbeat.inc_count(); // Increment the RC heartbeat count
+
     if (get_state() == GkcLifecycle::Uninitialized)
     {
       send_log(LogPacket::Severity::WARNING, "Controller is uninitialized, ignoring RCControlGkcPacket");
@@ -259,7 +285,7 @@ namespace tritonai::gkc
             "is_active: " + std::to_string(packet.is_active)
     );
 
-    if(!packet.is_active){
+    if(!packet.is_active && get_state() != GkcLifecycle::Inactive){
       send_log(LogPacket::Severity::FATAL, "RCControlGkcPacket is not active, calling emergency_stop()");
       _actuation.set_throttle_cmd(new float(0.0));
       _actuation.set_steering_cmd(new float(0.0));
@@ -279,6 +305,14 @@ namespace tritonai::gkc
         send_log(LogPacket::Severity::INFO, "RCControlGkcPacket is in autonomous mode, ignoring");
         return;
       }
+
+    // If throttle, steering, and brake are zero, then the RC is not commanding
+    if(packet.throttle == 0.0 && packet.steering == 0.0 && packet.brake == 0.0){
+      _rc_commanding = packet.autonomy_mode == AutonomyMode::MANUAL; // Set the RC commanding flag
+      send_log(LogPacket::Severity::INFO, "RCControlGkcPacket is not commanding, ignoring");
+      if(!_rc_commanding)
+        return;
+    }
 
     if(packet.autonomy_mode == AutonomyMode::AUTONOMOUS_OVERRIDE || packet.autonomy_mode == AutonomyMode::MANUAL){
       _rc_commanding = true; // Set the RC commanding flag
