@@ -47,6 +47,7 @@ StateTransitionResult GkcStateMachine::initialize() {
     state_ = GkcLifecycle::Uninitialized;
     break;
   }
+  common_checks();
   return result;
 }
 
@@ -77,6 +78,7 @@ StateTransitionResult GkcStateMachine::deactivate() {
     state_ = GkcLifecycle::Active;
     break;
   }
+  common_checks();
   return result;
 }
 
@@ -107,6 +109,7 @@ StateTransitionResult GkcStateMachine::activate() {
     state_ = GkcLifecycle::Inactive;
     break;
   }
+  common_checks();
   return result;
 }
 
@@ -140,6 +143,7 @@ StateTransitionResult GkcStateMachine::emergency_stop() {
     state_ = GkcLifecycle::Emergency;
     break;
   }
+  common_checks();
   return result;
 }
 
@@ -167,9 +171,20 @@ StateTransitionResult GkcStateMachine::reinitialize() {
     state_ = GkcLifecycle::Uninitialized;
     break;
   }
+  common_checks();
   return result;
 }
 
 GkcLifecycle GkcStateMachine::get_state() const { return state_; }
+
+void GkcStateMachine::common_checks()
+{
+  if(state_ == GkcLifecycle::Active)
+    _led = 0;
+  else
+    _led = 1;
+
+  return;
+}
 } // namespace gkc
 } // namespace tritonai

@@ -61,6 +61,8 @@ protected:
 // The current state of the state machine
 private:
   GkcLifecycle state_ {GkcLifecycle::Uninitialized};
+  void common_checks();
+  DigitalOut _led{LED3, 0};
 };
 } // namespace gkc
 } // namespace tritonai
