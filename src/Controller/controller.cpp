@@ -2,6 +2,7 @@
 #include "config.h"
 
 #include "tai_gokart_packet/gkc_packets.hpp"
+#include "tai_gokart_packet/version.hpp"
 
 #include <chrono>
 #include <iostream>
@@ -50,7 +51,7 @@ namespace tritonai::gkc
   Controller::Controller() :
     Watchable(DEFAULT_CONTROLLER_POLL_INTERVAL_MS, DEFAULT_CONTROLLER_POLL_LOST_TOLERANCE_MS, "Controller"), // Initializes the controller with default values
     GkcStateMachine(), // Initializes the state machine
-    _severity(LogPacket::Severity::WARNING), // Initializes the severity of the logger
+    _severity(LogPacket::Severity::INFO), // Initializes the severity of the logger
     _comm(this), // Passes the controller as the subscriber to the comm manager
     _watchdog(DEFAULT_WD_INTERVAL_MS, DEFAULT_WD_MAX_INACTIVITY_MS, DEFAULT_WD_WAKEUP_INTERVAL_MS), // Initializes the watchdog with default values
     _sensor_reader(), // Initializes the sensor reader
@@ -127,11 +128,17 @@ namespace tritonai::gkc
   void Controller::packet_callback(const GetFirmwareVersionGkcPacket &packet)
   {
     send_log(LogPacket::Severity::INFO, "GetFirmwareVersionGkcPacket received");
+    FirmwareVersionGkcPacket response;
+    response.major = GkcPacketLibVersion::MAJOR;
+    response.minor = GkcPacketLibVersion::MINOR;
+    response.patch = GkcPacketLibVersion::PATCH;
+
+    _comm.send(response);
   }
 
   void Controller::packet_callback(const FirmwareVersionGkcPacket &packet)
   {
-    std::cout << "FirmwareVersionGkcPacket received" << std::endl;
+    send_log(LogPacket::Severity::INFO, "FirmwareVersionGkcPacket received, should not happen, ignoring.");
   }
 
   void Controller::packet_callback(const ResetMcuGkcPacket &packet)

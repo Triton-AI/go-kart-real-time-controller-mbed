@@ -23,7 +23,7 @@ class GkcPacketLibVersion
 public:
   static constexpr uint8_t MAJOR = 0;
   static constexpr uint8_t MINOR = 1;
-  static constexpr uint8_t PATCH = 0;
+  static constexpr uint8_t PATCH = 1;
 };
 }  // namespace gkc
 }  // namespace tritonai
