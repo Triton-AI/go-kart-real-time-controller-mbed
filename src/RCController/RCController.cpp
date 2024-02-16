@@ -48,7 +48,7 @@ namespace tritonai::gkc
         double swith1_norm = normalize(swith1);
         double swith2_norm = normalize(swith2);
 
-        // TODO: Check if the switch is in the correct position
+        // TODO: (Moises) Check if the switch is in the correct position
         if (swith1_norm < 0.0 && swith2_norm < 0.0)
             return true;
         else
@@ -113,7 +113,7 @@ namespace tritonai::gkc
 
 
             _packet.throttle = Map.throttle(busData[ELRS_THROTLE]);
-            _packet.brake = 0.0; // TODO: Implement brake
+            _packet.brake = 0.0; // TODO: (Moises) Implement brake
             _packet.steering = Map.steering(busData[ELRS_STEERING]);
             _packet.autonomy_mode = Map.getAutonomyMode(
                 busData[ELRS_TRI_SWITCH_RIGHT]

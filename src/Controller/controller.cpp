@@ -9,7 +9,7 @@
 
 namespace tritonai::gkc
 {
-  // TODO: remove this function in production, debug only
+  // TODO: (Moises) remove this function in production, debug only
   void Controller::keep_alive()
   {
     GkcLifecycle last_state = GkcLifecycle::Emergency;
@@ -83,7 +83,7 @@ namespace tritonai::gkc
   }
 
   // ILogger API IMPLEMENTATION
-  // TODO: send_log partially implemented, complete the implementation
+  // TODO: (Moises) send_log partially implemented, complete the implementation
   void Controller::send_log(const LogPacket::Severity &severity, const std::string &what)
   {
     
@@ -148,13 +148,13 @@ namespace tritonai::gkc
     NVIC_SystemReset();
   }
 
-  // TODO: Implement the heartbeat packet callback
+  // TODO: (Moises) Implement the heartbeat packet callback
   void Controller::packet_callback(const HeartbeatGkcPacket &packet)
   {
     std::cout << "HeartbeatGkcPacket received" << std::endl;
   }
 
-  // TODO: Implement the config packet callback
+  // TODO: (Moises) Implement the config packet callback
   void Controller::packet_callback(const ConfigGkcPacket &packet)
   {
     std::cout << "ConfigGkcPacket received" << std::endl;
@@ -194,7 +194,7 @@ namespace tritonai::gkc
     }
   }
 
-  // TODO: Implement the control packet callback, partially done
+  // TODO: (Moises) Implement the control packet callback, partially done
   void Controller::packet_callback(const ControlGkcPacket &packet)
   {
     std::cout << "ControlGkcPacket received" << std::endl;
@@ -203,31 +203,31 @@ namespace tritonai::gkc
     _actuation.set_brake_cmd(new float(packet.brake));
   }
 
-  // TODO: Implement the sensor packet callback
+  // TODO: (Moises) Implement the sensor packet callback
   void Controller::packet_callback(const SensorGkcPacket &packet)
   {
     std::cout << "SensorGkcPacket received" << std::endl;
   }
 
-  // TODO: Implement the shutdown1 packet callbacks
+  // TODO: (Moises) Implement the shutdown1 packet callbacks
   void Controller::packet_callback(const Shutdown1GkcPacket &packet)
   {
     std::cout << "Shutdown1GkcPacket received" << std::endl;
   }
 
-  // TODO: Implement the shutdown2 packet callbacks
+  // TODO: (Moises) Implement the shutdown2 packet callbacks
   void Controller::packet_callback(const Shutdown2GkcPacket &packet)
   {
     std::cout << "Shutdown2GkcPacket received" << std::endl;
   }
 
-  // TODO: Implement the log packet callback
+  // TODO: (Moises) Implement the log packet callback
   void Controller::packet_callback(const LogPacket &packet)
   {
     std::cout << "LogPacket received" << std::endl;
   }
 
-  // TODO: Implement the RCControlGkcPacket packet callback, partially done
+  // TODO: (Moises) Implement the RCControlGkcPacket packet callback, partially done
   void Controller::packet_callback(const RCControlGkcPacket &packet)
   {
     send_log(LogPacket::Severity::INFO, 
@@ -246,35 +246,35 @@ namespace tritonai::gkc
   }
 
   // GkcStateMachine API IMPLEMENTATION
-  // TODO: Implement on_initialize
+  // TODO: (Moises) Implement on_initialize
   StateTransitionResult Controller::on_initialize(const GkcLifecycle &last_state)
   {
     send_log(LogPacket::Severity::INFO, "Controller initializing");
     return StateTransitionResult::SUCCESS;
   }
 
-  // TODO: Implement on_deactivate
+  // TODO: (Moises) Implement on_deactivate
   StateTransitionResult Controller::on_deactivate(const GkcLifecycle &last_state)
   {
     send_log(LogPacket::Severity::INFO, "Controller deactivating");
     return StateTransitionResult::SUCCESS;
   }
 
-  // TODO: Implement on_activate
+  // TODO: (Moises) Implement on_activate
   StateTransitionResult Controller::on_activate(const GkcLifecycle &last_state)
   {
     send_log(LogPacket::Severity::INFO, "Controller activating");
     return StateTransitionResult::SUCCESS;
   }
 
-  // TODO: Implement on_emergency_stop
+  // TODO: (Moises) Implement on_emergency_stop
   StateTransitionResult Controller::on_emergency_stop(const GkcLifecycle &last_state)
   {
     send_log(LogPacket::Severity::INFO, "Controller emergency stopping");
     return StateTransitionResult::SUCCESS;
   }
 
-  // TODO: Implement on_reinitialize
+  // TODO: (Moises) Implement on_reinitialize
   StateTransitionResult Controller::on_reinitialize(const GkcLifecycle &last_state)
   {
     send_log(LogPacket::Severity::INFO, "Controller reinitializing");
