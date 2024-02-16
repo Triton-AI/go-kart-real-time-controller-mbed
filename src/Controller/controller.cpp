@@ -51,9 +51,6 @@ namespace tritonai::gkc
 
   void Controller::on_rc_disconnect()
   {
-    if(!_stop_on_rc_disconnect)
-        return;
-
     send_log(LogPacket::Severity::INFO, "Controller heartbeat lost");
 
     if(get_state() != GkcLifecycle::Active)
@@ -83,8 +80,6 @@ namespace tritonai::gkc
   {
     // Attaches the watchdog callback to the controller
     attach(callback(this, &Controller::watchdog_callback));
-    // Attaches the RC disconnect callback to rc heartbeat
-    _rc_heartbeat.attach(callback(this, &Controller::on_rc_disconnect));
 
     // TODO: Remove this Add a timer that calls keep alive every 100ms 
     _keep_alive_thread.start(callback(this, &Controller::keep_alive));
@@ -94,7 +89,10 @@ namespace tritonai::gkc
     _watchdog.add_to_watchlist(&_comm); // Adds the comm manager to the watchlist
     _watchdog.add_to_watchlist(&_sensor_reader); // Adds the sensor reader to the watchlist
     _watchdog.add_to_watchlist(&_rc_controller); // Adds the RC controller to the watchlist
-    _watchdog.add_to_watchlist(&_rc_heartbeat); // Adds the RC heartbeat to the watchlist
+    if(_stop_on_rc_disconnect){
+      _rc_heartbeat.attach(callback(this, &Controller::on_rc_disconnect)); // Attaches the RC disconnect callback to rc heartbeat
+      _watchdog.add_to_watchlist(&_rc_heartbeat); // Adds the RC heartbeat to the watchlist
+    }
 
     _watchdog.arm(); // Arms the watchdog
 
