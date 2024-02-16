@@ -62,8 +62,9 @@ namespace tritonai::gkc
       ActuationController _actuation;
       RCController _rc_controller;
 
-
       Thread _keep_alive_thread{osPriorityNormal, OS_STACK_SIZE, nullptr, "keep_alive_thread"};
+
+      bool _rc_commanding{false};
   };
 }
 

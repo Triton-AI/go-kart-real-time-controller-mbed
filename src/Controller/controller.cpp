@@ -3,6 +3,7 @@
 
 #include "tai_gokart_packet/gkc_packets.hpp"
 #include "tai_gokart_packet/version.hpp"
+#include "Tools/rc_control.hpp"
 
 #include <chrono>
 #include <iostream>
@@ -12,6 +13,7 @@ namespace tritonai::gkc
   // TODO: (Moises) remove this function in production, debug only
   void Controller::keep_alive()
   {
+    initialize();
     GkcLifecycle last_state = GkcLifecycle::Emergency;
     while(1){
       ThisThread::sleep_for(std::chrono::milliseconds(100));
@@ -197,7 +199,21 @@ namespace tritonai::gkc
   // TODO: (Moises) Implement the control packet callback, partially done
   void Controller::packet_callback(const ControlGkcPacket &packet)
   {
-    std::cout << "ControlGkcPacket received" << std::endl;
+    if(_rc_commanding){
+      send_log(LogPacket::Severity::INFO, "RC is commanding, ignoring ControlGkcPacket");
+      return;
+    }
+
+    send_log(LogPacket::Severity::INFO, "ControlGkcPacket received: throttle: " + std::to_string((int)(packet.throttle * 100)) + "%, " +
+            "steering: " + std::to_string((int)(packet.steering * 100)) + "%, " +
+            "brake: " + std::to_string((int)(packet.brake * 100)) + "%"
+    );
+
+    if(get_state() != GkcLifecycle::Active){
+      send_log(LogPacket::Severity::INFO, "Controller is not active, ignoring ControlGkcPacket");
+      return;
+    }
+    
     _actuation.set_throttle_cmd(new float(packet.throttle));
     _actuation.set_steering_cmd(new float(packet.steering));
     _actuation.set_brake_cmd(new float(packet.brake));
@@ -227,9 +243,14 @@ namespace tritonai::gkc
     std::cout << "LogPacket received" << std::endl;
   }
 
-  // TODO: (Moises) Implement the RCControlGkcPacket packet callback, partially done
   void Controller::packet_callback(const RCControlGkcPacket &packet)
   {
+    if (get_state() == GkcLifecycle::Uninitialized)
+    {
+      send_log(LogPacket::Severity::WARNING, "Controller is uninitialized, ignoring RCControlGkcPacket");
+      return;
+    }
+
     send_log(LogPacket::Severity::INFO, 
             "RCControlGkcPacket received: throttle: " + std::to_string((int)(packet.throttle * 100)) + "%, " +
             "steering: " + std::to_string((int)(packet.steering * 100)) + "%, " +
@@ -240,23 +261,36 @@ namespace tritonai::gkc
 
     if(!packet.is_active){
       send_log(LogPacket::Severity::FATAL, "RCControlGkcPacket is not active, calling emergency_stop()");
+      _actuation.set_throttle_cmd(new float(0.0));
+      _actuation.set_steering_cmd(new float(0.0));
+      _actuation.set_brake_cmd(new float(0.2));
       emergency_stop();
+      return;
     }
 
-    if(packet.autonomy_mode){
-        send_log(LogPacket::Severity::WARNING, "RCControlGkcPacket is in autonomy mode, ignoring");
+    if(packet.is_active && get_state() == GkcLifecycle::Inactive){
+      send_log(LogPacket::Severity::INFO, "Controller transitioning to Active");
+      GkcStateMachine::activate();
+      return;
+    }
+
+    if(packet.autonomy_mode == AUTONOMOUS){
+        _rc_commanding = false; // Clear the RC commanding flag
+        send_log(LogPacket::Severity::INFO, "RCControlGkcPacket is in autonomous mode, ignoring");
         return;
       }
 
-    if(get_state() != GkcLifecycle::Active){
-      send_log(LogPacket::Severity::WARNING, "Controller is not active, ignoring RCControlGkcPacket");
-      return;
+    if(packet.autonomy_mode == AutonomyMode::AUTONOMOUS_OVERRIDE || packet.autonomy_mode == AutonomyMode::MANUAL){
+      _rc_commanding = true; // Set the RC commanding flag
     }
 
     // No problems detected, setting the actuation commands
     _actuation.set_throttle_cmd(new float(packet.throttle));
     _actuation.set_steering_cmd(new float(packet.steering));
     _actuation.set_brake_cmd(new float(packet.brake));
+
+    if(packet.autonomy_mode == AutonomyMode::AUTONOMOUS || packet.autonomy_mode == AutonomyMode::AUTONOMOUS_OVERRIDE)
+      _rc_commanding = false; // Clear the RC commanding flag
 
   }
 

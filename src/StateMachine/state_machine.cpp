@@ -119,6 +119,9 @@ StateTransitionResult GkcStateMachine::activate() {
  * @return StateTransitionResult
  */
 StateTransitionResult GkcStateMachine::emergency_stop() {
+  if (state_ == GkcLifecycle::Uninitialized) {
+    return StateTransitionResult::FAILURE_INVALID_TRANSITION;
+  }
   // Checks that the current state is not uninitialized or initializing
   if (state_  != GkcLifecycle::Emergency) {
     state_ = GkcLifecycle::Emergency;
@@ -128,7 +131,7 @@ StateTransitionResult GkcStateMachine::emergency_stop() {
   const auto result = on_emergency_stop(state_);
   switch (result) {
   case StateTransitionResult::SUCCESS:
-    state_ = GkcLifecycle::Uninitialized;
+    state_ = GkcLifecycle::Inactive;
     break;
   case StateTransitionResult::ERROR:
     // std::cout << "Resetting MCU for Estop Failure";
