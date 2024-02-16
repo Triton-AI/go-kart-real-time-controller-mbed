@@ -35,11 +35,17 @@ StateTransitionResult GkcStateMachine::initialize() {
   // Sets the state to initializing and calls on_initialize
   state_ = GkcLifecycle::Initializing;
   const auto result = on_initialize(state_);
-  // Sets the state based on whether or not initialization was successful
-  if (result == StateTransitionResult::SUCCESS) {
+  switch (result)
+  {
+  case StateTransitionResult::SUCCESS:
     state_ = GkcLifecycle::Inactive;
-  } else {
+    break;
+  case StateTransitionResult::EMERGENCY_STOP:
+    state_ = GkcLifecycle::Emergency;
+    break;
+  default:
     state_ = GkcLifecycle::Uninitialized;
+    break;
   }
   return result;
 }
@@ -64,12 +70,11 @@ StateTransitionResult GkcStateMachine::deactivate() {
   case StateTransitionResult::SUCCESS:
     state_ = GkcLifecycle::Inactive;
     break;
-  // Calls the emergency_stop function and changes states if necessary
   case StateTransitionResult::EMERGENCY_STOP:
-    on_emergency_stop(state_);
     state_ = GkcLifecycle::Emergency;
     break;
   default:
+    state_ = GkcLifecycle::Active;
     break;
   }
   return result;
@@ -86,52 +91,20 @@ StateTransitionResult GkcStateMachine::deactivate() {
 
 StateTransitionResult GkcStateMachine::activate() {
   // Checks that the current state is inactive
-  // if (state_ != GkcLifecycle::Inactive) {
-  //   return StateTransitionResult::FAILURE_INVALID_TRANSITION;
-  // }
+  if (state_ != GkcLifecycle::Inactive) {
+    return StateTransitionResult::FAILURE_INVALID_TRANSITION;
+  }
   // Calls on_activate and sets state to active if transition is successful
   const auto result = on_activate(state_);
   switch (result) {
   case StateTransitionResult::SUCCESS:
     state_ = GkcLifecycle::Active;
     break;
-  // Calls the emergency_stop function and changes states if necessary
   case StateTransitionResult::EMERGENCY_STOP:
-    on_emergency_stop(state_);
     state_ = GkcLifecycle::Emergency;
     break;
   default:
-    break;
-  }
-  return result;
-}
-
-/**
- * @brief Transitions the state machine to the shutdown state if possible.
- * Has to check if the current state is inactive or active, if not, it fails.
- * If the current state is inactive or active, calls on_shutdown, and sets the
- * state to emergency if shutdown is successful. If shutdown is not successful,
- * it calls the emergency_stop function and changes states.
- * @return StateTransitionResult
- */
-
-StateTransitionResult GkcStateMachine::shutdown() {
-  // Checks that the current state is inactive or active
-  if (state_ != GkcLifecycle::Inactive && state_ != GkcLifecycle::Active) {
-    return StateTransitionResult::FAILURE_INVALID_TRANSITION;
-  }
-  // Calls on_shutdown and sets state to emergency
-  const auto result = on_shutdown(state_);
-  switch (result) {
-  case StateTransitionResult::SUCCESS:
-    state_ = GkcLifecycle::Emergency;
-    break;
-  // Calls the emergency_stop function if the transition fails
-  case StateTransitionResult::EMERGENCY_STOP:
-    on_emergency_stop(state_);
-    state_ = GkcLifecycle::Emergency;
-    break;
-  default:
+    state_ = GkcLifecycle::Inactive;
     break;
   }
   return result;
@@ -147,22 +120,20 @@ StateTransitionResult GkcStateMachine::shutdown() {
  */
 StateTransitionResult GkcStateMachine::emergency_stop() {
   // Checks that the current state is not uninitialized or initializing
-  if (state_ == GkcLifecycle::Uninitialized ||
-      state_ == GkcLifecycle::Initializing) {
-    return StateTransitionResult::FAILURE_INVALID_TRANSITION;
+  if (state_  != GkcLifecycle::Emergency) {
+    return StateTransitionResult::EMERGENCY_STOP;
   }
   // Calls on_emergency_stop and checks the result
   const auto result = on_emergency_stop(state_);
   switch (result) {
   case StateTransitionResult::SUCCESS:
-    state_ = GkcLifecycle::Emergency;
+    state_ = GkcLifecycle::Uninitialized;
     break;
-  // Resets the MCU if the transition fails
-  case StateTransitionResult::FAILURE:
   case StateTransitionResult::ERROR:
-    std::cout << "Resetting MCU for Estop Failure";
+    // std::cout << "Resetting MCU for Estop Failure";
     NVIC_SystemReset();
   default:
+    state_ = GkcLifecycle::Emergency;
     break;
   }
   return result;
@@ -178,17 +149,18 @@ StateTransitionResult GkcStateMachine::emergency_stop() {
  */
 StateTransitionResult GkcStateMachine::reinitialize() {
   // Checks that the current state is emergency
-  if (state_ != GkcLifecycle::Emergency) {
+  if (state_ != GkcLifecycle::Uninitialized) {
     return StateTransitionResult::FAILURE_INVALID_TRANSITION;
   }
+  state_ = GkcLifecycle::Initializing;
   // Calls on_reinitialize and sets state to uninitialized if transition is
-  // successful
   const auto result = on_reinitialize(state_);
   switch (result) {
   case StateTransitionResult::SUCCESS:
-    state_ = GkcLifecycle::Uninitialized;
+    state_ = GkcLifecycle::Inactive;
     break;
   default:
+    state_ = GkcLifecycle::Uninitialized;
     break;
   }
   return result;

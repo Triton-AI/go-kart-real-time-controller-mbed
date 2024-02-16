@@ -43,7 +43,6 @@ public:
   StateTransitionResult initialize();
   StateTransitionResult deactivate();
   StateTransitionResult activate();
-  StateTransitionResult shutdown();
   StateTransitionResult emergency_stop();
   StateTransitionResult reinitialize();
 
@@ -53,21 +52,11 @@ public:
 // on_emergency_stop, and on_reinitialize 
 //must be implemented by the child class.
 protected:
-  virtual StateTransitionResult
-  on_initialize(const GkcLifecycle &last_state) = 0;
-
-  virtual StateTransitionResult
-  on_deactivate(const GkcLifecycle &last_state) = 0;
-
+  virtual StateTransitionResult on_initialize(const GkcLifecycle &last_state) = 0;
+  virtual StateTransitionResult on_deactivate(const GkcLifecycle &last_state) = 0;
   virtual StateTransitionResult on_activate(const GkcLifecycle &last_state) = 0;
-
-  virtual StateTransitionResult on_shutdown(const GkcLifecycle &last_state) = 0;
-
-  virtual StateTransitionResult
-  on_emergency_stop(const GkcLifecycle &last_state) = 0;
-
-  virtual StateTransitionResult
-  on_reinitialize(const GkcLifecycle &last_state) = 0;
+  virtual StateTransitionResult on_emergency_stop(const GkcLifecycle &last_state) = 0;
+  virtual StateTransitionResult on_reinitialize(const GkcLifecycle &last_state) = 0;
 
 // The current state of the state machine
 private:
