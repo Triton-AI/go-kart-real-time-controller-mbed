@@ -517,7 +517,7 @@ void ActuationController::can_transmit_thread_impl() {
 
     delete c_msg;
 
-    ThisThread::sleep_for(2ms);
+    // ThisThread::sleep_for(10ms);
   }
 }
 

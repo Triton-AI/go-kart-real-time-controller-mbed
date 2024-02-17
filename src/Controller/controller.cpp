@@ -226,15 +226,15 @@ namespace tritonai::gkc
       return;
     }
 
-    send_log(LogPacket::Severity::INFO, "ControlGkcPacket received: throttle: " + std::to_string((int)(packet.throttle * 100)) + "%, " +
-            "steering: " + std::to_string((int)(packet.steering * 100)) + "%, " +
-            "brake: " + std::to_string((int)(packet.brake * 100)) + "%"
-    );
-
     if(get_state() != GkcLifecycle::Active){
       send_log(LogPacket::Severity::INFO, "Controller is not active, ignoring ControlGkcPacket");
       return;
     }
+
+    send_log(LogPacket::Severity::INFO, "ControlGkcPacket received: throttle: " + std::to_string((int)(packet.throttle * 100)) + "%, " +
+            "steering: " + std::to_string((int)(packet.steering * 100)) + "%, " +
+            "brake: " + std::to_string((int)(packet.brake * 100)) + "%"
+    );
     
     _actuation.set_throttle_cmd(new float(packet.throttle));
     _actuation.set_steering_cmd(new float(packet.steering));
@@ -275,13 +275,6 @@ namespace tritonai::gkc
       return;
     }
 
-    send_log(LogPacket::Severity::INFO, 
-            "RCControlGkcPacket received: throttle: " + std::to_string((int)(packet.throttle * 100)) + "%, " +
-            "steering: " + std::to_string((int)(packet.steering * 100)) + "%, " +
-            "brake: " + std::to_string((int)(packet.brake * 100)) + "%, " +
-            "autonomy_mode: " + std::to_string(packet.autonomy_mode) + ", " +
-            "is_active: " + std::to_string(packet.is_active)
-    );
 
     if(!packet.is_active && get_state() != GkcLifecycle::Inactive){
       send_log(LogPacket::Severity::FATAL, "RCControlGkcPacket is not active, calling emergency_stop()");
@@ -315,6 +308,14 @@ namespace tritonai::gkc
     if(packet.autonomy_mode == AutonomyMode::AUTONOMOUS_OVERRIDE || packet.autonomy_mode == AutonomyMode::MANUAL){
       _rc_commanding = true; // Set the RC commanding flag
     }
+
+    send_log(LogPacket::Severity::WARNING, 
+            "RCControlGkcPacket received: throttle: " + std::to_string((int)(packet.throttle * 100)) + "%, " +
+            "steering: " + std::to_string((int)(packet.steering * 100)) + "%, " +
+            "brake: " + std::to_string((int)(packet.brake * 100)) + "%, " +
+            "autonomy_mode: " + std::to_string(packet.autonomy_mode) + ", " +
+            "is_active: " + std::to_string(packet.is_active)
+    );
 
     // No problems detected, setting the actuation commands
     _actuation.set_throttle_cmd(new float(packet.throttle));

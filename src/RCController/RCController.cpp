@@ -83,7 +83,7 @@ namespace tritonai::gkc
             bool is_the_same_data = Map.throttle(busData[ELRS_THROTLE]) == _packet.throttle &&
                 Map.steering(busData[ELRS_STEERING]) == _packet.steering;
 
-            bool is_all_zero = busData[ELRS_THROTLE] == 0.0 && busData[ELRS_STEERING] == 0.0;
+            bool is_all_zero = abs(100*Map.throttle(busData[ELRS_THROTLE])) <= 5 && abs(100*Map.throttle(busData[ELRS_STEERING])) <= 5;
 
             // Check if the values are the same as the previous ones
             if (is_the_same_data && !is_all_zero)
@@ -94,6 +94,18 @@ namespace tritonai::gkc
                 busData[ELRS_EMERGENCY_STOP_LEFT],
                 busData[ELRS_EMERGENCY_STOP_RIGHT]
             );
+
+            if(is_all_zero){
+                _packet.throttle = 0.0;
+                _packet.steering = 0.0;
+                _packet.brake = 0.0;
+                _packet.is_active = temp_active;
+                _packet.autonomy_mode = Map.getAutonomyMode(
+                    busData[ELRS_TRI_SWITCH_RIGHT]
+                );
+                _packet.publish(*_sub);
+                continue;
+            }
 
             // if(temp_active == false && _packet.is_active == false) continue; // Stop if the values are the same
 
