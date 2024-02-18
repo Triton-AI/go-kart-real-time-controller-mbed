@@ -14,6 +14,7 @@ namespace tritonai::gkc
   void Controller::keep_alive()
   {
     initialize();
+    GkcStateMachine::activate();
     GkcLifecycle last_state = GkcLifecycle::Emergency;
     while(1){
       ThisThread::sleep_for(std::chrono::milliseconds(100));
@@ -222,12 +223,18 @@ namespace tritonai::gkc
   void Controller::packet_callback(const ControlGkcPacket &packet)
   {
     if(_rc_commanding){
-      send_log(LogPacket::Severity::INFO, "RC is commanding, ignoring ControlGkcPacket");
+      send_log(LogPacket::Severity::WARNING, "RC is commanding, ignoring ControlGkcPacket");
       return;
     }
 
     if(get_state() != GkcLifecycle::Active){
       send_log(LogPacket::Severity::INFO, "Controller is not active, ignoring ControlGkcPacket");
+      return;
+    }
+
+    if (packet.throttle == 0.0 && packet.steering == 0.0 && packet.brake == 0.0)
+    {
+      send_log(LogPacket::Severity::INFO, "ControlGkcPacket is not commanding, ignoring");
       return;
     }
 
@@ -309,7 +316,7 @@ namespace tritonai::gkc
       _rc_commanding = true; // Set the RC commanding flag
     }
 
-    send_log(LogPacket::Severity::WARNING, 
+    send_log(LogPacket::Severity::INFO, 
             "RCControlGkcPacket received: throttle: " + std::to_string((int)(packet.throttle * 100)) + "%, " +
             "steering: " + std::to_string((int)(packet.steering * 100)) + "%, " +
             "brake: " + std::to_string((int)(packet.brake * 100)) + "%, " +
@@ -322,7 +329,7 @@ namespace tritonai::gkc
     _actuation.set_steering_cmd(new float(packet.steering));
     _actuation.set_brake_cmd(new float(packet.brake));
 
-    if(packet.autonomy_mode == AutonomyMode::AUTONOMOUS || packet.autonomy_mode == AutonomyMode::AUTONOMOUS_OVERRIDE)
+if(packet.autonomy_mode == AutonomyMode::AUTONOMOUS || packet.autonomy_mode == AutonomyMode::AUTONOMOUS_OVERRIDE)
       _rc_commanding = false; // Clear the RC commanding flag
 
   }
