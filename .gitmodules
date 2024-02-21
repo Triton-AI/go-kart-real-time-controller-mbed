@@ -1,0 +1,3 @@
+[submodule "lib/tai_gokart_packet"]
+	path = lib/tai_gokart_packet
+	url = https://github.com/Triton-AI/tai_gokart_packet.git
