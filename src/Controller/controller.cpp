@@ -10,43 +10,15 @@
 
 namespace tritonai::gkc
 {
-  // TODO: (Moises) remove this function in production, debug only
-  void Controller::keep_alive()
+  void Controller::agx_heartbeat()
   {
-    initialize();
-    GkcStateMachine::activate();
-    GkcLifecycle last_state = GkcLifecycle::Emergency;
+    HeartbeatGkcPacket packet;
     while(1){
       ThisThread::sleep_for(std::chrono::milliseconds(100));
-      std::string state;
-      GkcLifecycle new_state = get_state();
-      switch(new_state)
-      {
-        case GkcLifecycle::Uninitialized:
-          state = "Uninitialized";
-          break;
-        case GkcLifecycle::Inactive:
-          state = "Inactive";
-          break;
-        case GkcLifecycle::Active:
-          state = "Active";
-          break;
-        case GkcLifecycle::Emergency:
-          state = "EmergencyStop";
-          break;
-        case GkcLifecycle::Initializing:
-          state = "Initializing";
-          break;
-        default:
-          state = "Unknown";
-          break;
-      }
-      if (last_state != new_state)
-      {
-        send_log(LogPacket::Severity::WARNING, "Controller state: " + state);
-        last_state = new_state;
-      }
-      this->inc_count();
+      packet.rolling_counter++;
+      packet.state = get_state();
+      _comm.send(packet); // Send the heartbeat packet
+      this->inc_count(); // Increment the watchdog count for the controller
     }
   }
 
@@ -83,7 +55,7 @@ namespace tritonai::gkc
     attach(callback(this, &Controller::watchdog_callback));
 
     // TODO: Remove this Add a timer that calls keep alive every 100ms 
-    _keep_alive_thread.start(callback(this, &Controller::keep_alive));
+    _keep_alive_thread.start(callback(this, &Controller::agx_heartbeat));
 
     // Adds the all the objects to the watchlist
     _watchdog.add_to_watchlist(this); // Adds the controller to the watchlist

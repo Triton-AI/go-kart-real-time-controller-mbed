@@ -20,8 +20,7 @@ namespace tritonai::gkc
     public:
       Controller();
 
-      // For testing purposes
-      void keep_alive();
+      void agx_heartbeat();
 
     protected:
       // GkcPacketSubscriber API
