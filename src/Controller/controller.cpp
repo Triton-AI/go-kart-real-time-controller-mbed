@@ -14,6 +14,7 @@ namespace tritonai::gkc
   {
     HeartbeatGkcPacket packet;
     std::string state;
+    std::string old_state;
     while(1){
       ThisThread::sleep_for(std::chrono::milliseconds(100));
       packet.rolling_counter++;
@@ -21,6 +22,7 @@ namespace tritonai::gkc
       _comm.send(packet); // Send the heartbeat packet
       this->inc_count(); // Increment the watchdog count for the controller
 
+      
       switch(get_state())
       {
         case GkcLifecycle::Uninitialized:
@@ -43,7 +45,10 @@ namespace tritonai::gkc
           break;
     }
 
-    std::cout << "Controller state: " << state << std::endl;
+    if(state != old_state){
+      old_state = state;
+      std::cout << "Controller state: " << state << std::endl;
+    }
     }
   }
 
@@ -79,7 +84,6 @@ namespace tritonai::gkc
     // Attaches the watchdog callback to the controller
     attach(callback(this, &Controller::watchdog_callback));
 
-    // TODO: Remove this Add a timer that calls keep alive every 100ms 
     _keep_alive_thread.start(callback(this, &Controller::agx_heartbeat));
 
     // Adds the all the objects to the watchlist
@@ -91,8 +95,6 @@ namespace tritonai::gkc
       _rc_heartbeat.attach(callback(this, &Controller::on_rc_disconnect)); // Attaches the RC disconnect callback to rc heartbeat
       _watchdog.add_to_watchlist(&_rc_heartbeat); // Adds the RC heartbeat to the watchlist
     }
-
-    _watchdog.arm(); // Arms the watchdog
 
     send_log(LogPacket::Severity::INFO, "Controller initialized");
   }
@@ -117,8 +119,8 @@ namespace tritonai::gkc
       std::cerr << "Warning: " << what << std::endl;
     else if(severity == LogPacket::Severity::INFO && _severity <= severity)
       std::cout << "Info: " << what << std::endl;
-    // else
-    //   std::cout << "Debug: " << what << std::endl;
+    else if(severity == LogPacket::Severity::BEBUG && _severity <= severity)
+      std::cout << "Debug: " << what << std::endl;
 
   }
 
@@ -162,7 +164,7 @@ namespace tritonai::gkc
   // TODO: (Moises) Implement the heartbeat packet callback
   void Controller::packet_callback(const HeartbeatGkcPacket &packet)
   {
-    std::cout << "HeartbeatGkcPacket received" << std::endl;
+    send_log(LogPacket::Severity::INFO, "HeartbeatGkcPacket received");
   }
 
   // TODO: (Moises) Implement the config packet callback
@@ -208,19 +210,13 @@ namespace tritonai::gkc
   // TODO: (Moises) Implement the control packet callback, partially done
   void Controller::packet_callback(const ControlGkcPacket &packet)
   {
-    if(_rc_commanding){
-      send_log(LogPacket::Severity::WARNING, "RC is commanding, ignoring ControlGkcPacket");
-      return;
-    }
-
     if(get_state() != GkcLifecycle::Active){
       send_log(LogPacket::Severity::INFO, "Controller is not active, ignoring ControlGkcPacket");
       return;
     }
 
-    if (packet.throttle == 0.0 && packet.steering == 0.0 && packet.brake == 0.0)
-    {
-      send_log(LogPacket::Severity::INFO, "ControlGkcPacket is not commanding, ignoring");
+    if(_rc_commanding){
+      send_log(LogPacket::Severity::WARNING, "RC is commanding, ignoring ControlGkcPacket");
       return;
     }
 
@@ -229,33 +225,31 @@ namespace tritonai::gkc
             "brake: " + std::to_string((int)(packet.brake * 100)) + "%"
     );
     
-    _actuation.set_throttle_cmd(new float(packet.throttle));
-    _actuation.set_steering_cmd(new float(packet.steering));
-    _actuation.set_brake_cmd(new float(packet.brake));
+    set_actuation_values(packet.throttle, packet.steering, packet.brake);
   }
 
   // TODO: (Moises) Implement the sensor packet callback
   void Controller::packet_callback(const SensorGkcPacket &packet)
   {
-    std::cout << "SensorGkcPacket received" << std::endl;
+    send_log(LogPacket::Severity::INFO, "SensorGkcPacket received");
   }
 
   // TODO: (Moises) Implement the shutdown1 packet callbacks
   void Controller::packet_callback(const Shutdown1GkcPacket &packet)
   {
-    std::cout << "Shutdown1GkcPacket received" << std::endl;
+    send_log(LogPacket::Severity::INFO, "Shutdown1GkcPacket received");
   }
 
   // TODO: (Moises) Implement the shutdown2 packet callbacks
   void Controller::packet_callback(const Shutdown2GkcPacket &packet)
   {
-    std::cout << "Shutdown2GkcPacket received" << std::endl;
+    send_log(LogPacket::Severity::INFO, "Shutdown2GkcPacket received");
   }
 
   // TODO: (Moises) Implement the log packet callback
   void Controller::packet_callback(const LogPacket &packet)
   {
-    std::cout << "LogPacket received" << std::endl;
+    send_log(packet.level, packet.what);
   }
 
   void Controller::packet_callback(const RCControlGkcPacket &packet)
@@ -271,9 +265,7 @@ namespace tritonai::gkc
 
     if(!packet.is_active && get_state() != GkcLifecycle::Inactive){
       send_log(LogPacket::Severity::FATAL, "RCControlGkcPacket is not active, calling emergency_stop()");
-      _actuation.set_throttle_cmd(new float(0.0));
-      _actuation.set_steering_cmd(new float(0.0));
-      _actuation.set_brake_cmd(new float(0.2));
+      set_actuation_values(0.0, 0.0, 0.2); // Set the actuation values to stop the car (brake at 20% pressure
       emergency_stop();
       return;
     }
@@ -293,7 +285,6 @@ namespace tritonai::gkc
     // If throttle, steering, and brake are zero, then the RC is not commanding
     if(packet.throttle == 0.0 && packet.steering == 0.0 && packet.brake == 0.0){
       _rc_commanding = packet.autonomy_mode == AutonomyMode::MANUAL; // Set the RC commanding flag
-      send_log(LogPacket::Severity::INFO, "RCControlGkcPacket is not commanding, ignoring");
       if(!_rc_commanding)
         return;
     }
@@ -311,12 +302,10 @@ namespace tritonai::gkc
     );
 
     // No problems detected, setting the actuation commands
-    _actuation.set_throttle_cmd(new float(packet.throttle));
-    _actuation.set_steering_cmd(new float(packet.steering));
-    _actuation.set_brake_cmd(new float(packet.brake));
+    set_actuation_values(packet.throttle, packet.steering, packet.brake);
 
-if(packet.autonomy_mode == AutonomyMode::AUTONOMOUS || packet.autonomy_mode == AutonomyMode::AUTONOMOUS_OVERRIDE)
-      _rc_commanding = false; // Clear the RC commanding flag
+    if(packet.autonomy_mode == AutonomyMode::AUTONOMOUS || packet.autonomy_mode == AutonomyMode::AUTONOMOUS_OVERRIDE)
+          _rc_commanding = false; // Clear the RC commanding flag
 
   }
 
@@ -325,6 +314,8 @@ if(packet.autonomy_mode == AutonomyMode::AUTONOMOUS || packet.autonomy_mode == A
   StateTransitionResult Controller::on_initialize(const GkcLifecycle &last_state)
   {
     send_log(LogPacket::Severity::INFO, "Controller initializing");
+    _watchdog.arm(); // Arms the watchdog
+    set_actuation_values(0.0, 0.0, 0.2); // Set the actuation values to stop the car (brake at 20% pressure
     return StateTransitionResult::SUCCESS;
   }
 
@@ -346,6 +337,7 @@ if(packet.autonomy_mode == AutonomyMode::AUTONOMOUS || packet.autonomy_mode == A
   StateTransitionResult Controller::on_emergency_stop(const GkcLifecycle &last_state)
   {
     send_log(LogPacket::Severity::INFO, "Controller emergency stopping");
+    set_actuation_values(0.0, 0.0, 0.2); // Set the actuation values to stop the car (brake at 20% pressure
     return StateTransitionResult::SUCCESS;
   }
 
@@ -353,6 +345,21 @@ if(packet.autonomy_mode == AutonomyMode::AUTONOMOUS || packet.autonomy_mode == A
   StateTransitionResult Controller::on_reinitialize(const GkcLifecycle &last_state)
   {
     send_log(LogPacket::Severity::INFO, "Controller reinitializing");
+    set_actuation_values(0.0, 0.0, 0.2); // Set the actuation values to stop the car (brake at 20% pressure
     return StateTransitionResult::SUCCESS;
+  }
+
+  void Controller::set_actuation_values(float throttle, float steering, float brake)
+  {
+    if(get_state() != GkcLifecycle::Active){
+      send_log(LogPacket::Severity::INFO, "Controller is not active, ignoring set_actuation_values");
+      _actuation.set_throttle_cmd(new float(0.0));
+      _actuation.set_steering_cmd(new float(0.0));
+      _actuation.set_brake_cmd(new float(brake));
+      return;
+    }
+    _actuation.set_throttle_cmd(new float(throttle));
+    _actuation.set_steering_cmd(new float(steering));
+    _actuation.set_brake_cmd(new float(brake));
   }
 } // namespace tritonai::gkc
