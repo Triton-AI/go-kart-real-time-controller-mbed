@@ -5,7 +5,6 @@
 #include "math.h"
 #include "elrs_receiver.hpp"
 #include "tai_gokart_packet/gkc_packets.hpp"
-#include "Tools/rc_control.hpp"
 #include "Watchdog/watchable.hpp"
 #include <Thread.h>
 

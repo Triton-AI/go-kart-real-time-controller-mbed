@@ -2,8 +2,8 @@
 #include "config.h"
 
 #include "tai_gokart_packet/gkc_packets.hpp"
+#include "tai_gokart_packet/gkc_packet_utils.hpp"
 #include "tai_gokart_packet/version.hpp"
-#include "Tools/rc_control.hpp"
 
 #include <chrono>
 #include <iostream>
@@ -13,12 +13,37 @@ namespace tritonai::gkc
   void Controller::agx_heartbeat()
   {
     HeartbeatGkcPacket packet;
+    std::string state;
     while(1){
       ThisThread::sleep_for(std::chrono::milliseconds(100));
       packet.rolling_counter++;
       packet.state = get_state();
       _comm.send(packet); // Send the heartbeat packet
       this->inc_count(); // Increment the watchdog count for the controller
+
+      switch(get_state())
+      {
+        case GkcLifecycle::Uninitialized:
+          state = "Uninitialized";
+          break;
+        case GkcLifecycle::Initializing:
+          state = "Initializing";
+          break;
+        case GkcLifecycle::Inactive:
+          state = "Inactive";
+          break;
+        case GkcLifecycle::Active:
+          state = "Active";
+          break;
+        case GkcLifecycle::Emergency:
+          state = "Emergency";
+          break;
+        default:
+          state = "Unknown";
+          break;
+    }
+
+    std::cout << "Controller state: " << state << std::endl;
     }
   }
 
@@ -101,21 +126,10 @@ namespace tritonai::gkc
   void Controller::packet_callback(const Handshake1GkcPacket &packet)
   {
     send_log(LogPacket::Severity::INFO, "Handshake1GkcPacket received");
+    Handshake2GkcPacket response;
+    response.seq_number = packet.seq_number + 1;
+    _comm.send(response);
 
-    // If the controller is uninitialized, initialize it
-    if(get_state() == GkcLifecycle::Uninitialized)
-    {
-      send_log(LogPacket::Severity::INFO, "Controller transitioning to Initializing");
-      initialize();
-    }
-
-    // If the controller has successfully initialized, send a Handshake2GkcPacket
-    if(get_state() == GkcLifecycle::Inactive)
-    {
-      Handshake2GkcPacket response;
-      response.seq_number += packet.seq_number + 1;
-      _comm.send(response);
-    }
   }
 
   void Controller::packet_callback(const Handshake2GkcPacket &packet)
