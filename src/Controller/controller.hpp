@@ -22,6 +22,7 @@ namespace tritonai::gkc
 
       void agx_heartbeat();
 
+
     protected:
       // GkcPacketSubscriber API
       void packet_callback(const Handshake1GkcPacket & packet);

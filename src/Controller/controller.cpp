@@ -15,6 +15,11 @@ namespace tritonai::gkc
     HeartbeatGkcPacket packet;
     std::string state;
     std::string old_state;
+
+    //TODO: (Moises) TEMP
+    GkcStateMachine::initialize();
+    //TODO: (Moises) TEMP
+    
     while(1){
       ThisThread::sleep_for(std::chrono::milliseconds(100));
       packet.rolling_counter++;
@@ -47,7 +52,7 @@ namespace tritonai::gkc
 
     if(state != old_state){
       old_state = state;
-      std::cout << "Controller state: " << state << std::endl;
+      send_log(LogPacket::Severity::WARNING, "Controller state: " + state);
     }
     }
   }

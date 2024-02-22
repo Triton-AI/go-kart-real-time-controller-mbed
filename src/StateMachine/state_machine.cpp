@@ -18,7 +18,9 @@
  */
 namespace tritonai {
 namespace gkc {
-GkcStateMachine::GkcStateMachine() : state_(GkcLifecycle::Uninitialized) {}
+GkcStateMachine::GkcStateMachine() : state_(GkcLifecycle::Uninitialized) {
+  common_checks();
+}
 
 /**
  * @brief Transitions the state machine to the initializing state if possible.

@@ -11,6 +11,7 @@ int main() {
   button.rise(&NVIC_SystemReset);
 
   new tritonai::gkc::Controller();
+  
   while (1){
     ThisThread::sleep_for(1000ms);
   };
