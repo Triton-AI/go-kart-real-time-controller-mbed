@@ -13,6 +13,7 @@ int main() {
   new tritonai::gkc::Controller();
   
   while (1){
-    ThisThread::sleep_for(1000ms);
+    ThisThread::sleep_for(300000ms);
+    NVIC_SystemReset();
   };
 }
