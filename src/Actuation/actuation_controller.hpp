@@ -59,9 +59,30 @@ public:
   float get_steering_cmd() const { return angle_steering_cmd; };
   float get_brake_cmd() const { return current_brake_cmd; };
 
-  bool set_throttle_cmd(float *cmd) { return throttle_cmd_queue.try_put(cmd); };
-  bool set_steering_cmd(float *cmd) { return steering_cmd_queue.try_put(cmd); };
-  bool set_brake_cmd(float *cmd) { return brake_cmd_queue.try_put(cmd); };
+  bool set_throttle_cmd(float *cmd) { 
+    if (throttle_cmd_queue.try_put(cmd)) {
+      return true;
+    } else {
+      delete cmd;
+      return false;
+    }
+   };
+  bool set_steering_cmd(float *cmd) { 
+    if (steering_cmd_queue.try_put(cmd)) {
+      return true;
+    } else {
+      delete cmd;
+      return false;
+    }
+  };
+  bool set_brake_cmd(float *cmd) { 
+    if (brake_cmd_queue.try_put(cmd)) {
+      return true;
+    } else {
+      delete cmd;
+      return false;
+    }
+   };
 
   bool is_ready();
   void populate_reading(SensorGkcPacket &pkt);

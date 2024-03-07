@@ -68,6 +68,7 @@ namespace tritonai::gkc
       void on_rc_disconnect();
       bool _stop_on_rc_disconnect{true};
       void set_actuation_values(float throttle, float steering, float brake);
+      DigitalOut _led{LED1};
   };
 }
 
