@@ -14,6 +14,5 @@ int main() {
   
   while (1){
     ThisThread::sleep_for(3600000ms);
-    NVIC_SystemReset();
   };
 }

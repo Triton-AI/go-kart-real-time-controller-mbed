@@ -493,9 +493,16 @@ void ActuationController::throttle_thread_impl() {
     uint8_t message[4] = {0, 0, 0, 0};
     int32_t idx = 0;
     buffer_append_int32(&message[0], vesc_current_cmd, &idx);
-    can_cmd_queue.try_put(new CANMessage(VESC_RPM_ID(THROTTLE_VESC_ID),
-                                         &message[0], sizeof(message), CANData,
-                                         CANExtended));
+
+    CANMessage *cMsg;
+
+    cMsg = new CANMessage(VESC_CURRENT_ID(THROTTLE_VESC_ID), &message[0],
+                          sizeof(message), CANData, CANExtended);
+    
+    if(!can_cmd_queue.try_put(cMsg)){
+      delete cMsg;
+    }
+    
     delete cmd;
 
     ThisThread::sleep_for(2ms);
@@ -598,7 +605,7 @@ void ActuationController::steering_thread_impl() {
     //     cMsg = new CANMessage(VESC_CURRENT_ID(STEER_VESC_ID), &message[0],
     //                           sizeof(message), CANData, CANExtended);
     //   }
-
+``
     // } else if (!leftLimitSwitch) {
 
     //   if (vesc_steering_cmd < prev_vesc_steering_cmd) {
@@ -620,7 +627,10 @@ void ActuationController::steering_thread_impl() {
                           sizeof(message), CANData, CANExtended);
     // }
 
-    can_cmd_queue.try_put(cMsg);
+    if(!can_cmd_queue.try_put(cMsg)){
+      delete cMsg;
+    }
+
     ThisThread::sleep_for(2ms);
   }
 }
