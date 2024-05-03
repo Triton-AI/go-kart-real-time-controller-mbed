@@ -8,6 +8,7 @@
 #include "Actuation/actuation_controller.hpp"
 #include "RCController/RCController.hpp"
 #include "StateMachine/state_machine.hpp"
+#include <chrono>
 
 namespace tritonai::gkc
 {
@@ -64,6 +65,7 @@ namespace tritonai::gkc
 
       Thread _keep_alive_thread{osPriorityNormal, OS_STACK_SIZE, nullptr, "keep_alive_thread"};
       bool _rc_commanding{false};
+      std::chrono::time_point<std::chrono::steady_clock> _last_rc_command=std::chrono::steady_clock::now();
       Watchable _rc_heartbeat;
       void on_rc_disconnect();
       bool _stop_on_rc_disconnect{true};

@@ -19,6 +19,19 @@ namespace tritonai::gkc
     {
         return normalize(throttleVal);
     }
+    double Translation::throttle_ratio(int throttleVal) 
+    {
+        double normalized_value = normalize(throttleVal);
+        return (normalized_value+1.0)/2.0;
+    }
+    bool Translation::keep_constant_thr(int throttleVal) 
+    {
+        double normalized_value = normalize(throttleVal);
+        if (normalized_value < 0.0)
+            return false;
+        else
+            return true;
+    }
     double Translation::brake(int brakeVal) 
     {
         return normalize(brakeVal);
@@ -80,14 +93,16 @@ namespace tritonai::gkc
 
             if(!_receiver.messageAvailable) continue; // Stop if no message available
 
-            bool is_the_same_data = Map.throttle(busData[ELRS_THROTLE]) == _packet.throttle &&
-                Map.steering(busData[ELRS_STEERING]) == _packet.steering;
-
-            bool is_all_zero = abs(100*Map.throttle(busData[ELRS_THROTLE])) <= 5 && abs(100*Map.throttle(busData[ELRS_STEERING])) <= 5;
-
-            // Check if the values are the same as the previous ones
-            if (is_the_same_data && !is_all_zero)
-                continue; // Stop if the values are the same
+            // std::cout << "Bus data: " << (int)(100*busData[0]) <<
+            //     " " << (int)(100*busData[1]) <<
+            //     " " << (int)(100*busData[2]) <<
+            //     " " << (int)(100*busData[3]) <<
+            //     " " << (int)(100*busData[4]) <<
+            //     " " << (int)(100*busData[5]) <<
+            //     " " << (int)(100*busData[6]) <<
+            //     " " << (int)(100*busData[7]) <<
+            //     " " << (int)(100*busData[8]) <<
+            //     std::endl;
 
             // Stop if the emergency stop is not active
             bool temp_active = Map.is_active(
@@ -95,7 +110,20 @@ namespace tritonai::gkc
                 busData[ELRS_EMERGENCY_STOP_RIGHT]
             );
 
-            if(is_all_zero){
+            if(!temp_active){
+                _packet.throttle = 0.0;
+                _packet.steering = 0.0;
+                _packet.brake = Map.throttle_ratio(busData[ELRS_RATIO_THROTTLE]);
+                _packet.is_active = temp_active;
+                _packet.publish(*_sub);
+                continue;
+            }
+
+            bool keep_constant_thr = Map.keep_constant_thr(busData[ELRS_HOLD_THROTTLE]);
+            bool is_all_zero = abs(100*Map.normalize(busData[ELRS_THROTLE])) <= 5 && abs(100*Map.normalize(busData[ELRS_STEERING])) <= 5;
+
+
+            if(is_all_zero && !keep_constant_thr){
                 _packet.throttle = 0.0;
                 _packet.steering = 0.0;
                 _packet.brake = 0.0;
@@ -107,19 +135,11 @@ namespace tritonai::gkc
                 continue;
             }
 
-            // if(temp_active == false && _packet.is_active == false) continue; // Stop if the values are the same
-
-            if(!temp_active){
-                _packet.throttle = 0.0;
-                _packet.steering = 0.0;
-                _packet.brake = 0.2;
-                _packet.is_active = temp_active;
-                _packet.publish(*_sub);
-                continue;
+            if(!keep_constant_thr){
+                current_throttle = Map.throttle(busData[ELRS_THROTLE]);
             }
 
-
-            _packet.throttle = Map.throttle(busData[ELRS_THROTLE]);
+            _packet.throttle = current_throttle*Map.throttle_ratio(busData[ELRS_RATIO_THROTTLE]);
             _packet.brake = 0.0; // TODO: (Moises) Implement brake
             _packet.steering = Map.steering(busData[ELRS_STEERING]);
             _packet.autonomy_mode = Map.getAutonomyMode(
@@ -128,8 +148,6 @@ namespace tritonai::gkc
             _packet.is_active = temp_active;
 
             _is_ready = true;
-
-            
 
             _packet.publish(*_sub);
         }

@@ -16,6 +16,8 @@ struct Translation
     double normalize(int analogValue);
     double steering(int steerVal);
     double throttle(int throttleVal);
+    double throttle_ratio(int throttleVal);
+    bool keep_constant_thr(int throttleVal);
     double brake(int brakeVal);
     bool is_active(int swith1, int swith2);
     AutonomyMode getAutonomyMode(int rightTriVal);
@@ -42,7 +44,7 @@ class RCController : public Watchable
     RCControlGkcPacket _packet{};
     bool _is_ready;
     GkcPacketSubscriber *_sub;
-    
+    float current_throttle=0.0;
 };
 
 } // namespace tritonai::gkc

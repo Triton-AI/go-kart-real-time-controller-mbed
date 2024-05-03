@@ -22,6 +22,7 @@ namespace tritonai::gkc
     
     while(1){
       ThisThread::sleep_for(std::chrono::milliseconds(100));
+
       _led = !_led;
       packet.rolling_counter++;
       packet.state = get_state();
@@ -69,9 +70,7 @@ namespace tritonai::gkc
     }
 
     send_log(LogPacket::Severity::FATAL, "RC controller heartbeat lost");
-    _actuation.set_throttle_cmd(new float(0.0));
-    _actuation.set_steering_cmd(new float(0.0));
-    _actuation.set_brake_cmd(new float(0.2));
+    set_actuation_values(0.0, 0.0, EMERGENCY_BRAKE_PRESSURE); // Set the actuation values to stop the car (brake at 20% pressure
     emergency_stop();
   }
 
@@ -216,6 +215,7 @@ namespace tritonai::gkc
   // TODO: (Moises) Implement the control packet callback, partially done
   void Controller::packet_callback(const ControlGkcPacket &packet)
   {
+    std::cout << "ControlGkcPacket received" << std::endl;
     if(get_state() != GkcLifecycle::Active){
       send_log(LogPacket::Severity::INFO, "Controller is not active, ignoring ControlGkcPacket");
       return;
@@ -268,11 +268,16 @@ namespace tritonai::gkc
       return;
     }
 
-
     if(!packet.is_active && get_state() != GkcLifecycle::Inactive){
       send_log(LogPacket::Severity::FATAL, "RCControlGkcPacket is not active, calling emergency_stop()");
-      set_actuation_values(0.0, 0.0, 0.2); // Set the actuation values to stop the car (brake at 20% pressure
+      set_actuation_values(0.0, 0.0, packet.brake); // Set the actuation values to stop the car (brake at 20% pressure
       emergency_stop();
+      return;
+    }
+
+    if(!packet.is_active && get_state() == GkcLifecycle::Inactive){
+      send_log(LogPacket::Severity::INFO, "Controller transitioning to Inactive");
+      set_actuation_values(0.0, 0.0, packet.brake); // Set the actuation values to stop the car (brake at 20% pressure
       return;
     }
 
@@ -297,6 +302,7 @@ namespace tritonai::gkc
 
     if(packet.autonomy_mode == AutonomyMode::AUTONOMOUS_OVERRIDE || packet.autonomy_mode == AutonomyMode::MANUAL){
       _rc_commanding = true; // Set the RC commanding flag
+      _last_rc_command = std::chrono::steady_clock::now(); // Update the last RC command time
     }
 
     send_log(LogPacket::Severity::INFO, 
@@ -307,12 +313,18 @@ namespace tritonai::gkc
             "is_active: " + std::to_string(packet.is_active)
     );
 
-    // No problems detected, setting the actuation commands
-    set_actuation_values(packet.throttle, packet.steering, packet.brake);
+    float throttle_speed = 0.0;
+
+    if(packet.throttle > 0.0)
+      throttle_speed = packet.throttle * RC_MAX_SPEED_FORWARD;
+    else if(packet.throttle < 0.0)
+      throttle_speed = packet.throttle * RC_MAX_SPEED_REVERSE; 
+
+    set_actuation_values(throttle_speed, packet.steering, packet.brake);
 
     if(packet.autonomy_mode == AutonomyMode::AUTONOMOUS || packet.autonomy_mode == AutonomyMode::AUTONOMOUS_OVERRIDE)
-          _rc_commanding = false; // Clear the RC commanding flag
-
+          if((_last_rc_command - std::chrono::steady_clock::now()) > std::chrono::milliseconds(RC_TAKEOVER_INTERVAL_MS))
+             _rc_commanding = false; // Clear the RC commanding flag   
   }
 
   // GkcStateMachine API IMPLEMENTATION
@@ -321,7 +333,7 @@ namespace tritonai::gkc
   {
     send_log(LogPacket::Severity::INFO, "Controller initializing");
     _watchdog.arm(); // Arms the watchdog
-    set_actuation_values(0.0, 0.0, 0.2); // Set the actuation values to stop the car (brake at 20% pressure
+    set_actuation_values(0.0, 0.0, EMERGENCY_BRAKE_PRESSURE); // Set the actuation values to stop the car (brake at 20% pressure
     return StateTransitionResult::SUCCESS;
   }
 
@@ -343,7 +355,7 @@ namespace tritonai::gkc
   StateTransitionResult Controller::on_emergency_stop(const GkcLifecycle &last_state)
   {
     send_log(LogPacket::Severity::INFO, "Controller emergency stopping");
-    set_actuation_values(0.0, 0.0, 0.2); // Set the actuation values to stop the car (brake at 20% pressure
+    set_actuation_values(0.0, 0.0, EMERGENCY_BRAKE_PRESSURE); // Set the actuation values to stop the car (brake at 20% pressure
     return StateTransitionResult::SUCCESS;
   }
 
@@ -351,7 +363,7 @@ namespace tritonai::gkc
   StateTransitionResult Controller::on_reinitialize(const GkcLifecycle &last_state)
   {
     send_log(LogPacket::Severity::INFO, "Controller reinitializing");
-    set_actuation_values(0.0, 0.0, 0.2); // Set the actuation values to stop the car (brake at 20% pressure
+    set_actuation_values(0.0, 0.0, EMERGENCY_BRAKE_PRESSURE); // Set the actuation values to stop the car (brake at 20% pressure
     return StateTransitionResult::SUCCESS;
   }
 
@@ -359,13 +371,13 @@ namespace tritonai::gkc
   {
     if(get_state() != GkcLifecycle::Active){
       send_log(LogPacket::Severity::INFO, "Controller is not active, ignoring set_actuation_values");
-      _actuation.set_throttle_cmd(new float(0.0));
-      _actuation.set_steering_cmd(new float(0.0));
-      _actuation.set_brake_cmd(new float(brake));
+      _actuation.full_rel_rev_current_brake();
+      _actuation.set_brake_cmd(brake);
+      _actuation.set_steering_cmd(0.0);
       return;
     }
-    _actuation.set_throttle_cmd(new float(throttle));
-    _actuation.set_steering_cmd(new float(steering));
-    _actuation.set_brake_cmd(new float(brake));
+    _actuation.set_steering_cmd(steering);
+    _actuation.set_throttle_cmd(throttle);
+    _actuation.set_brake_cmd(brake);
   }
 } // namespace tritonai::gkc

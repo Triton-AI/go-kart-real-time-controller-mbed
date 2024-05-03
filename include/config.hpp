@@ -72,11 +72,12 @@
 #define DEFAULT_CONTROLLER_POLL_INTERVAL_MS 1000
 #define DEFAULT_CONTROLLER_POLL_LOST_TOLERANCE_MS 3000
 // How often should the RCCOntroller be checked by watchdog
-#define DEFAULT_RC_CONTROLLER_POLL_INTERVAL_MS 1000
+#define DEFAULT_RC_CONTROLLER_POLL_INTERVAL_MS 100
 #define DEFAULT_RC_CONTROLLER_POLL_LOST_TOLERANCE_MS 3000
 // How often should RC Heartbeat be checked by watchdog
 #define DEFAULT_RC_HEARTBEAT_INTERVAL_MS 100
 #define DEFAULT_RC_HEARTBEAT_LOST_TOLERANCE_MS 500
+#define RC_TAKEOVER_INTERVAL_MS 100
 
 
 // *********
@@ -99,8 +100,8 @@
 #define THROTTLE_VESC_ID 1
 // Braking
 #define CAN_BRAKE CAN_1 // Which CAN bus to use for brake [CAN_1 | CAN_2]
-#define MAX_BRAKE_VAL 2500
-#define MIN_BRAKE_VAL 1500
+#define MAX_BRAKE_VAL 3000
+#define MIN_BRAKE_VAL 600
 // Steering
 #define CAN_STEER CAN_2 // Which CAN bus to use for steer [CAN_1 | CAN_2]
 #define MAX_STEER_DEG 100.0
@@ -134,10 +135,28 @@
 // #define STEADY_STATE_CURRENT_MULT 0
 #define STEER_DEADBAND_DEG 0.5 //VESC already has a limit of min ERPM := 600. Enything bellow this is already used as 0.
 #define PID_INTERVAL_MS 10
-#define STEER_VESC_ID 02
+#define STEER_VESC_ID 2
 #define RIGHT_LSWITCH PF_0
 #define LEFT_LSWITCH PF_1
 #define ENABLE_LSWITCH      //comment to remove limit switches behaviour
+
+// Throttle
+#define THROTTLE_CAN_PORT  2 // To which can port should the throttle be sent
+#define THROTTLE_CAN_ID 1    // To which can port should the throttle be sent
+#define THROTTLE_MAX_REVERSE_SPEED 20.0 // m/s
+#define THROTTLE_MAX_FORWARD_SPEED 20.0 // m/s
+#define RC_MAX_SPEED_FORWARD 20.0 // m/s
+#define RC_MAX_SPEED_REVERSE 5.0 // m/s
+
+// Steering
+#define STEER_CAN_PORT  2 // To which can port should the throttle be sent
+#define STEER_CAN_ID 2    // To which can port should the throttle be sent
+
+// Brake
+#define BRAKE_CAN_PORT  1 // To which can port should the throttle be sent
+#define BRAKE_CAN_ID 0x00FF0000    // To which can port should the throttle be sent
+
+#define EMERGENCY_BRAKE_PRESSURE 1.0 // 0.5 bar
 
 // *******
 // Sensors
@@ -156,7 +175,7 @@
 // 110          29
 
 //(in radians)
-#define STERING_MAPPTING    {{0, 0,},\
+#define STERING_MAPPING    {{0, 0,},\
                             {0.523599, 0.15708,},\
                             {0.872665, 0.20944,},\
                             {1.22173, 0.296706,},\
@@ -166,6 +185,7 @@
                             {1.91986, 0.506145}}; // takes first and last column
 #define MIN__WHEEL_STEER_DEG -20
 #define MAX__WHEEL_STEER_DEG 20
+#define MOTOR_OFFSET 0.3
 
 // *****
 // ESTOP
@@ -185,5 +205,7 @@
 #define ELRS_EMERGENCY_STOP_LEFT 4
 #define ELRS_EMERGENCY_STOP_RIGHT 7
 #define ELRS_TRI_SWITCH_RIGHT 6
+#define ELRS_RATIO_THROTTLE 9
+#define ELRS_HOLD_THROTTLE 8
 
 #endif // CONFIG_HPP_
